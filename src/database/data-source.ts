@@ -6,11 +6,18 @@ config();
 
 const dbType = process.env.DATABASE_TYPE || 'sqlite';
 
+// Entities for the data DB (session/webhook/message — NOT auth/audit which are SQLite-only)
+const dataEntities = [
+  __dirname + '/../modules/session/**/*.entity{.ts,.js}',
+  __dirname + '/../modules/webhook/**/*.entity{.ts,.js}',
+  __dirname + '/../modules/message/**/*.entity{.ts,.js}',
+];
+
 // SQLite configuration
 const sqliteDataSource = new DataSource({
   type: 'sqlite',
   database: process.env.DATABASE_NAME || './data/openwa.sqlite',
-  entities: [__dirname + '/../**/*.entity{.ts,.js}'],
+  entities: dataEntities,
   migrations: [__dirname + '/migrations/*{.ts,.js}'],
   synchronize: false,
   logging: process.env.DATABASE_LOGGING === 'true',
@@ -24,9 +31,9 @@ const postgresDataSource = new DataSource({
   username: process.env.DATABASE_USERNAME,
   password: process.env.DATABASE_PASSWORD,
   database: process.env.DATABASE_NAME || 'openwa',
-  entities: [__dirname + '/../**/*.entity{.ts,.js}'],
+  entities: dataEntities,
   migrations: [__dirname + '/migrations/*{.ts,.js}'],
-  synchronize: false, // Never auto-sync in production
+  synchronize: false,
   logging: process.env.DATABASE_LOGGING === 'true',
   ssl:
     process.env.DATABASE_SSL === 'true'

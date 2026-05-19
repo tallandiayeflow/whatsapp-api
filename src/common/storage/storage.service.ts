@@ -46,15 +46,13 @@ export class StorageService {
       const region = process.env.S3_REGION || s3Config.region || 'us-east-1';
 
       if (endpoint && accessKeyId && secretAccessKey) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         this.s3Client = new S3Client({
           endpoint,
           region,
-          credentials: {
-            accessKeyId,
-            secretAccessKey,
-          },
-          forcePathStyle: true, // Required for MinIO
-        });
+          credentials: { accessKeyId, secretAccessKey },
+          forcePathStyle: true,
+        } as any);
         this.s3Bucket = process.env.S3_BUCKET || s3Config.bucket || 'openwa';
         void this.initializeS3Bucket();
       }
