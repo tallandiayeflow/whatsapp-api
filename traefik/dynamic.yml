@@ -1,37 +1,30 @@
 # Traefik Dynamic Configuration
 http:
   routers:
-    # API Router - highest priority for /api paths
+    # Redirect HTTP → HTTPS handled by entryPoint redirections in traefik.yml
+
+    # API Router
     api:
       rule: 'PathPrefix(`/api/`)'
       entryPoints:
-        - web
+        - websecure
       service: api
       priority: 100
+      tls:
+        certResolver: letsencrypt
 
-    # WebSocket Router - highest priority for socket.io
+    # WebSocket Router
     websocket:
       rule: 'PathPrefix(`/socket.io`)'
       entryPoints:
-        - web
+        - websecure
       service: api
       priority: 100
-
-    # Dashboard Router - catch-all for frontend (lowest priority)
-    dashboard:
-      rule: 'PathPrefix(`/`)'
-      entryPoints:
-        - web
-      service: dashboard
-      priority: 1
+      tls:
+        certResolver: letsencrypt
 
   services:
     api:
       loadBalancer:
         servers:
           - url: 'http://openwa-api:2785'
-
-    dashboard:
-      loadBalancer:
-        servers:
-          - url: 'http://openwa-dashboard:80'

@@ -9,11 +9,15 @@ services:
     profiles: ['with-proxy', 'full']
     restart: unless-stopped
     ports:
-      - '127.0.0.1:${DASHBOARD_PORT:-2886}:80'
-      - '127.0.0.1:8080:8080' # Traefik dashboard
+      - '0.0.0.0:80:80'
+      - '0.0.0.0:443:443'
+      - '127.0.0.1:8080:8080' # Traefik dashboard (local only)
+    environment:
+      - ACME_EMAIL=${ACME_EMAIL:-admin@example.com}
     volumes:
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
       - ./traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
+      - letsencrypt:/letsencrypt
     labels:
       - 'com.openwa.service=proxy'
       - 'com.openwa.core=true'
@@ -184,6 +188,8 @@ volumes:
   redis-data:
     driver: local
   minio-data:
+    driver: local
+  letsencrypt:
     driver: local
 
 networks:
