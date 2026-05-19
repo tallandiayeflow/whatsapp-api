@@ -7,32 +7,32 @@ Internet
    │ 80/443
    ▼
 Nginx (VPS 91.134.143.81)
-   ├── api.noor-boutique.com   → localhost:2785 (OpenWA API)
-   └── dash.noor-boutique.com  → /var/www/openwa-dashboard (React SPA)
+   ├── api.noor-boutique.com   → localhost:2785 (OpenWA API Docker)
+   └── dash.noor-boutique.com  → /var/www/openwa-dashboard (React SPA statique)
 ```
 
 **Infos VPS :**
 - IP : 91.134.143.81
 - OS : Ubuntu
-- Reverse proxy : Nginx (déjà en place)
-- Traefik OpenWA : désactivé (`PROXY_ENABLED=false`)
-- Dashboard : servi par Nginx directement (pas Vercel)
+- Reverse proxy : Nginx (gère SSL)
+- Traefik : désactivé (`PROXY_ENABLED=false`)
+- Dashboard container : désactivé (`DASHBOARD_ENABLED=false`), servi par Nginx
 
 ---
 
-## ÉTAPE 1 — DNS (chez ton registrar noor-boutique.com)
+## ÉTAPE 1 — DNS
 
-Ajouter 2 enregistrements **A** :
+Chez le registrar `noor-boutique.com`, ajouter 2 enregistrements **A** :
 
-| Nom   | Type | Valeur          | TTL  |
-|-------|------|-----------------|------|
-| `api` | A    | `91.134.143.81` | 3600 |
-| `dash`| A    | `91.134.143.81` | 3600 |
+| Nom    | Type | Valeur          | TTL  |
+|--------|------|-----------------|------|
+| `api`  | A    | `91.134.143.81` | 3600 |
+| `dash` | A    | `91.134.143.81` | 3600 |
 
-Vérifier propagation (peut prendre 5 min à 24h) :
+Vérifier propagation :
 ```bash
-ping api.noor-boutique.com   # doit répondre 91.134.143.81
-ping dash.noor-boutique.com  # doit répondre 91.134.143.81
+ping api.noor-boutique.com   # → 91.134.143.81
+ping dash.noor-boutique.com  # → 91.134.143.81
 ```
 
 ---
@@ -136,24 +136,19 @@ ENABLE_SWAGGER=true
 
 ---
 
-## ÉTAPE 5 — Nginx
+## ÉTAPE 5 — Nginx + SSL
 
-### 5.1 Créer la config
+> **Important :** écrire la config HTTP-only d'abord, activer, puis lancer Certbot.
+> Certbot modifie automatiquement la config pour ajouter SSL.
+> Ne pas référencer les certificats SSL avant qu'ils existent.
+
+### 5.1 Config HTTP-only (avant Certbot)
 ```bash
-sudo tee /etc/nginx/sites-available/openwa << 'EOF'
+sudo tee /etc/nginx/sites-available/openwa > /dev/null << 'EOF'
 # ── API Backend ──────────────────────────────────────────────
 server {
     listen 80;
     server_name api.noor-boutique.com;
-    location / { return 301 https://$host$request_uri; }
-}
-
-server {
-    listen 443 ssl;
-    server_name api.noor-boutique.com;
-
-    ssl_certificate     /etc/letsencrypt/live/api.noor-boutique.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/api.noor-boutique.com/privkey.pem;
 
     proxy_connect_timeout 60s;
     proxy_send_timeout    300s;
@@ -183,15 +178,6 @@ server {
 server {
     listen 80;
     server_name dash.noor-boutique.com;
-    location / { return 301 https://$host$request_uri; }
-}
-
-server {
-    listen 443 ssl;
-    server_name dash.noor-boutique.com;
-
-    ssl_certificate     /etc/letsencrypt/live/dash.noor-boutique.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/dash.noor-boutique.com/privkey.pem;
 
     root /var/www/openwa-dashboard;
     index index.html;
@@ -205,12 +191,12 @@ EOF
 
 ### 5.2 Activer
 ```bash
-sudo ln -s /etc/nginx/sites-available/openwa /etc/nginx/sites-enabled/
-sudo nginx -t
-# doit afficher : syntax is ok
+sudo ln -sf /etc/nginx/sites-available/openwa /etc/nginx/sites-enabled/openwa
+sudo nginx -t       # doit afficher : syntax is ok
+sudo systemctl reload nginx
 ```
 
-### 5.3 Certificats SSL
+### 5.3 Certificats SSL (Certbot modifie la config automatiquement)
 ```bash
 sudo apt install certbot python3-certbot-nginx -y
 
@@ -231,7 +217,6 @@ sudo systemctl reload nginx
 
 ## ÉTAPE 6 — Builder le Dashboard
 
-### Sur le VPS
 ```bash
 cd /opt/openwa/dashboard
 npm install
@@ -253,7 +238,7 @@ curl https://dash.noor-boutique.com
 cd /opt/openwa
 chmod +x scripts/openwa.sh
 
-./scripts/openwa.sh build   # ~5-10 min
+./scripts/openwa.sh build   # ~5-10 min (build Docker image)
 ./scripts/openwa.sh start
 ./scripts/openwa.sh status
 ```
@@ -266,7 +251,7 @@ curl https://api.noor-boutique.com/api/health
 
 Logs si problème :
 ```bash
-./scripts/openwa.sh logs
+docker logs openwa-api --tail 50
 ./scripts/openwa.sh logs openwa-api 200
 ```
 
@@ -274,22 +259,28 @@ Logs si problème :
 
 ## ÉTAPE 8 — Récupérer la clé API
 
+La clé API est générée au premier démarrage et affichée dans les logs Docker.
+Elle est stockée dans un volume Docker nommé (pas accessible directement sur le host).
+
 ```bash
-cat /opt/openwa/data/.api-key
+docker logs openwa-api 2>&1 | grep "owa_k1_"
 # owa_k1_xxxxxxxxxxxxxxxxxxxxx  ← noter cette clé
 ```
 
 Swagger UI : `https://api.noor-boutique.com/api/docs`
+
+Tester avec la clé :
+```bash
+curl https://api.noor-boutique.com/api/sessions \
+  -H "X-API-Key: owa_k1_xxx..."
+```
 
 ---
 
 ## ÉTAPE 9 — Démarrage automatique au reboot
 
 ```bash
-sudo nano /etc/systemd/system/openwa.service
-```
-
-```ini
+sudo tee /etc/systemd/system/openwa.service > /dev/null << EOF
 [Unit]
 Description=OpenWA WhatsApp API
 Requires=docker.service
@@ -301,13 +292,12 @@ RemainAfterExit=yes
 WorkingDirectory=/opt/openwa
 ExecStart=/opt/openwa/scripts/openwa.sh start
 ExecStop=/opt/openwa/scripts/openwa.sh stop
-User=REMPLACER_PAR_TON_USER
+User=$USER
 
 [Install]
 WantedBy=multi-user.target
-```
+EOF
 
-```bash
 sudo systemctl daemon-reload
 sudo systemctl enable openwa
 sudo systemctl start openwa
@@ -315,7 +305,52 @@ sudo systemctl start openwa
 
 ---
 
-## ÉTAPE 10 — Mise à jour
+## ÉTAPE 10 — CI/CD (déploiement automatique)
+
+Chaque push sur `main` déclenche le pipeline GitHub Actions :
+lint → test → build → docker → **deploy automatique sur VPS**.
+
+### 10.1 Créer les secrets GitHub
+
+Aller sur : **github.com/tallandiayeflow/whatsapp-api → Settings → Secrets and variables → Actions**
+
+| Secret        | Valeur                    |
+|---------------|---------------------------|
+| `VPS_HOST`    | `91.134.143.81`           |
+| `VPS_USER`    | ton user SSH (ex: `openwa`) |
+| `VPS_SSH_KEY` | clé SSH privée (voir ci-dessous) |
+
+### 10.2 Générer la clé SSH pour GitHub Actions
+
+```bash
+# Sur le VPS
+ssh-keygen -t ed25519 -C "github-actions"
+# Appuyer Enter 3 fois (pas de passphrase, chemin par défaut)
+
+cat ~/.ssh/id_ed25519.pub >> ~/.ssh/authorized_keys
+
+# Copier le contenu ci-dessous dans le secret VPS_SSH_KEY
+cat ~/.ssh/id_ed25519
+```
+
+### 10.3 Flux CI/CD
+
+```
+git push origin main
+    │
+    ├── lint (ESLint backend + frontend)
+    ├── test (Jest 110 tests)
+    ├── dashboard (build React)
+    ├── build (compile TypeScript)
+    ├── docker (build + push ghcr.io)
+    └── deploy (SSH → git pull + rebuild + restart + dashboard)
+```
+
+---
+
+## Mise à jour manuelle
+
+Si besoin de mettre à jour sans attendre le CI :
 
 ```bash
 cd /opt/openwa
@@ -323,7 +358,7 @@ git pull
 ./scripts/openwa.sh build
 ./scripts/openwa.sh restart
 
-# Rebuilder le dashboard si changements frontend
+# Dashboard si changements frontend
 cd /opt/openwa/dashboard
 npm install
 VITE_API_URL=https://api.noor-boutique.com/api npm run build
@@ -339,7 +374,7 @@ cp -r dist/* /var/www/openwa-dashboard/
 ./scripts/openwa.sh logs      # logs live API
 ./scripts/openwa.sh restart   # redémarrer
 ./scripts/openwa.sh stop      # arrêter
-./scripts/openwa.sh update    # git pull + rebuild + restart
+docker logs openwa-api --tail 100   # logs détaillés
 ```
 
 ---
@@ -349,30 +384,68 @@ cp -r dist/* /var/www/openwa-dashboard/
 ```
 https://dash.noor-boutique.com          ← Dashboard React (Nginx → /var/www/openwa-dashboard)
         │
-        │ VITE_API_URL
+        │ VITE_API_URL=https://api.noor-boutique.com/api
         ▼
 https://api.noor-boutique.com/api       ← OpenWA API (Nginx → localhost:2785)
         │
         ├── Docker (openwa-api container)
         ├── Sessions WhatsApp (Chromium/Puppeteer)
         └── PostgreSQL (alwaysdata externe)
+
+git push main → GitHub Actions → SSH deploy automatique
 ```
+
+---
+
+## Utiliser l'API depuis une autre app
+
+### Créer une session WhatsApp
+```bash
+# 1. Créer session
+curl -X POST https://api.noor-boutique.com/api/sessions \
+  -H "X-API-Key: owa_k1_xxx..." \
+  -H "Content-Type: application/json" \
+  -d '{"sessionId": "ma-session"}'
+
+# 2. Scanner QR (base64 → https://base64.guru/converter/decode/image)
+curl https://api.noor-boutique.com/api/sessions/ma-session/qr \
+  -H "X-API-Key: owa_k1_xxx..."
+
+# 3. Vérifier statut (attendre "ready")
+curl https://api.noor-boutique.com/api/sessions/ma-session \
+  -H "X-API-Key: owa_k1_xxx..."
+```
+
+### Envoyer un message
+```bash
+curl -X POST https://api.noor-boutique.com/api/sessions/ma-session/messages/send-text \
+  -H "X-API-Key: owa_k1_xxx..." \
+  -H "Content-Type: application/json" \
+  -d '{"to": "221771234567@c.us", "text": "Bonjour!"}'
+```
+
+Format numéro : `[indicatif_pays][numéro]@c.us` → ex: `221784448928@c.us`
+
+Documentation complète : `https://api.noor-boutique.com/api/docs`
 
 ---
 
 ## Checklist
 
-- [ ] DNS — enregistrements A `api` et `dash` créés chez le registrar
-- [ ] DNS propagé — `ping api.noor-boutique.com` → `91.134.143.81`
-- [ ] Docker installé sur le VPS
-- [ ] `/var/www/openwa-dashboard` créé
-- [ ] Repo cloné dans `/opt/openwa`
-- [ ] `.env` configuré (`DATABASE_PASSWORD` renseigné, `PROXY_ENABLED=false`)
-- [ ] Nginx config créée et activée (`sudo nginx -t` → OK)
-- [ ] Certificats SSL Certbot générés pour les 2 sous-domaines
-- [ ] Dashboard buildé et copié dans `/var/www/openwa-dashboard`
-- [ ] `./scripts/openwa.sh build` terminé sans erreur
-- [ ] `./scripts/openwa.sh start` → containers UP
-- [ ] `curl https://api.noor-boutique.com/api/health` → `{"status":"ok"}`
-- [ ] `curl https://dash.noor-boutique.com` → HTML retourné
-- [ ] Service systemd activé (démarrage auto)
+- [x] DNS — enregistrements A `api` et `dash` créés
+- [x] DNS propagé — `ping api.noor-boutique.com` → `91.134.143.81`
+- [x] Docker installé sur le VPS
+- [x] `/var/www/openwa-dashboard` créé
+- [x] Repo cloné dans `/opt/openwa`
+- [x] `.env` configuré (`DATABASE_PASSWORD` renseigné, `PROXY_ENABLED=false`)
+- [x] Nginx config HTTP-only créée et activée (`sudo nginx -t` → OK)
+- [x] Certbot exécuté — SSL ajouté automatiquement
+- [x] Dashboard buildé avec `VITE_API_URL` et copié dans `/var/www/openwa-dashboard`
+- [x] `./scripts/openwa.sh build` terminé sans erreur
+- [x] `./scripts/openwa.sh start` → container UP
+- [x] `curl https://api.noor-boutique.com/api/health` → `{"status":"ok"}`
+- [x] `curl https://dash.noor-boutique.com` → HTML retourné
+- [ ] Clé API récupérée depuis `docker logs openwa-api`
+- [ ] Service systemd activé (démarrage auto au reboot)
+- [ ] Secrets GitHub Actions configurés (`VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`)
+- [ ] CI/CD testé — pipeline vert sur main
