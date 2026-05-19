@@ -6,6 +6,7 @@ import { Layout } from './components/Layout';
 import { ToastProvider } from './components/Toast';
 import { RoleProvider, useRole, type UserRole } from './hooks/useRole';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { API_BASE_URL } from './services/api';
 import './App.css';
 
 const Login = lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
@@ -41,7 +42,7 @@ function AppContent() {
 
     // Fetch the role from API
     try {
-      const response = await fetch('/api/auth/validate', {
+      const response = await fetch(`${API_BASE_URL}/auth/validate`, {
         method: 'POST',
         headers: { 'X-API-Key': key },
       });
@@ -68,7 +69,7 @@ function AppContent() {
   useEffect(() => {
     if (!savedKey) return;
 
-    fetch('/api/auth/validate', {
+    fetch(`${API_BASE_URL}/auth/validate`, {
       method: 'POST',
       headers: { 'X-API-Key': savedKey },
     })
