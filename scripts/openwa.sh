@@ -40,47 +40,47 @@ get_profiles() {
     # Dashboard (default: enabled)
     if [ "${DASHBOARD_ENABLED:-true}" = "true" ]; then
         profiles="$profiles --profile with-dashboard"
-        log_info "Dashboard: enabled"
+        log_info "Dashboard: enabled" >&2
     fi
 
     # Proxy (default: enabled)
     if [ "${PROXY_ENABLED:-true}" = "true" ]; then
         profiles="$profiles --profile with-proxy"
-        log_info "Proxy (Traefik): enabled"
+        log_info "Proxy (Traefik): enabled" >&2
     fi
 
     # PostgreSQL (built-in)
     if [ "${DATABASE_TYPE:-sqlite}" = "postgres" ] && [ "${POSTGRES_BUILTIN:-false}" = "true" ]; then
         profiles="$profiles --profile postgres"
-        log_info "PostgreSQL: built-in container"
+        log_info "PostgreSQL: built-in container" >&2
     elif [ "${DATABASE_TYPE:-sqlite}" = "postgres" ]; then
-        log_info "PostgreSQL: external (${DATABASE_HOST:-localhost}:${DATABASE_PORT:-5432})"
+        log_info "PostgreSQL: external (${DATABASE_HOST:-localhost}:${DATABASE_PORT:-5432})" >&2
     else
-        log_info "Database: SQLite"
+        log_info "Database: SQLite" >&2
     fi
 
     # Redis (built-in)
     if [ "${REDIS_ENABLED:-false}" = "true" ] && [ "${REDIS_BUILTIN:-false}" = "true" ]; then
         profiles="$profiles --profile redis"
-        log_info "Redis: built-in container"
+        log_info "Redis: built-in container" >&2
     elif [ "${REDIS_ENABLED:-false}" = "true" ]; then
-        log_info "Redis: external (${REDIS_HOST:-localhost}:${REDIS_PORT:-6379})"
+        log_info "Redis: external (${REDIS_HOST:-localhost}:${REDIS_PORT:-6379})" >&2
     else
-        log_info "Redis: disabled"
+        log_info "Redis: disabled" >&2
     fi
 
     # MinIO (built-in S3)
     if [ "${STORAGE_TYPE:-local}" = "s3" ] && [ "${MINIO_BUILTIN:-false}" = "true" ]; then
         profiles="$profiles --profile minio"
-        log_info "Storage: built-in MinIO"
+        log_info "Storage: built-in MinIO" >&2
     elif [ "${STORAGE_TYPE:-local}" = "s3" ]; then
-        log_info "Storage: external S3 (${S3_ENDPOINT})"
+        log_info "Storage: external S3 (${S3_ENDPOINT})" >&2
     else
-        log_info "Storage: local filesystem"
+        log_info "Storage: local filesystem" >&2
     fi
 
     # Engine type
-    log_info "Engine: ${ENGINE_TYPE:-whatsapp-web.js}"
+    log_info "Engine: ${ENGINE_TYPE:-whatsapp-web.js}" >&2
 
     echo "$profiles"
 }
