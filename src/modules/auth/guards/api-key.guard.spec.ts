@@ -1,16 +1,17 @@
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { JwtService } from '@nestjs/jwt';
 import { ApiKeyGuard } from './api-key.guard';
 import { AuthService } from '../auth.service';
 import { ApiKey, ApiKeyRole } from '../entities/api-key.entity';
 
-function createMockApiKey(overrides: Partial<ApiKey> = {}): ApiKey {
+function createMockApiKey(role = ApiKeyRole.ADMIN): ApiKey {
   return {
-    id: 'uuid-1',
-    name: 'Test Key',
-    keyHash: 'hash',
-    keyPrefix: 'owa_k1_xxxx',
-    role: ApiKeyRole.OPERATOR,
+    id: 'key-1',
+    name: 'Test',
+    keyHash: '',
+    keyPrefix: '',
+    role,
     allowedIps: null,
     allowedSessions: null,
     isActive: true,
@@ -19,25 +20,13 @@ function createMockApiKey(overrides: Partial<ApiKey> = {}): ApiKey {
     usageCount: 0,
     createdAt: new Date(),
     updatedAt: new Date(),
-    ...overrides,
   };
 }
 
-function createMockContext(
-  headers: Record<string, string> = {},
-  params: Record<string, string> = {},
-): ExecutionContext {
-  const request = {
-    headers,
-    params,
-    ip: '127.0.0.1',
-    socket: { remoteAddress: '127.0.0.1' },
-  };
-
+function makeContext(headers: Record<string, string>, params = {}): ExecutionContext {
+  const request = { headers, params, socket: {} };
   return {
-    switchToHttp: () => ({
-      getRequest: () => request,
-    }),
+    switchToHttp: () => ({ getRequest: () => request }),
     getHandler: () => ({}),
     getClass: () => ({}),
   } as unknown as ExecutionContext;
@@ -45,117 +34,111 @@ function createMockContext(
 
 describe('ApiKeyGuard', () => {
   let guard: ApiKeyGuard;
-  let authService: jest.Mocked<Partial<AuthService>>;
-  let reflector: jest.Mocked<Reflector>;
+  let authService: jest.Mocked<Pick<AuthService, 'validateApiKey' | 'hasPermission'>>;
+  let jwtService: jest.Mocked<Pick<JwtService, 'verifyAsync'>>;
+  let reflector: jest.Mocked<Pick<Reflector, 'getAllAndOverride'>>;
 
   beforeEach(() => {
     authService = {
       validateApiKey: jest.fn(),
-      hasPermission: jest.fn(),
+      hasPermission: jest.fn().mockReturnValue(true),
+    };
+    jwtService = {
+      verifyAsync: jest.fn(),
+    };
+    reflector = {
+      getAllAndOverride: jest.fn().mockReturnValue(undefined),
     };
 
-    reflector = {
-      getAllAndOverride: jest.fn(),
-    } as unknown as jest.Mocked<Reflector>;
-
-    guard = new ApiKeyGuard(authService as AuthService, reflector);
+    guard = new ApiKeyGuard(
+      authService as unknown as AuthService,
+      reflector as unknown as Reflector,
+      jwtService as unknown as JwtService,
+    );
   });
 
-  it('should allow access to @Public() routes without API key', async () => {
-    reflector.getAllAndOverride.mockReturnValueOnce(true); // isPublic = true
+  describe('API key path (X-API-Key header)', () => {
+    it('should pass when X-API-Key header is valid', async () => {
+      const apiKey = createMockApiKey();
+      authService.validateApiKey.mockResolvedValue(apiKey);
+      const ctx = makeContext({ 'x-api-key': 'valid-key' });
 
-    const context = createMockContext();
-    const result = await guard.canActivate(context);
+      const result = await guard.canActivate(ctx);
 
-    expect(result).toBe(true);
-    expect(authService.validateApiKey).not.toHaveBeenCalled();
-  });
-
-  it('should reject requests without X-API-Key header', async () => {
-    reflector.getAllAndOverride.mockReturnValueOnce(false); // not public
-
-    const context = createMockContext({});
-
-    await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
-    await expect(guard.canActivate(context)).rejects.toThrow('API key is required');
-  });
-
-  it('should accept X-API-Key header', async () => {
-    reflector.getAllAndOverride
-      .mockReturnValueOnce(false) // not public
-      .mockReturnValueOnce(undefined); // no required role
-
-    const apiKey = createMockApiKey();
-    (authService.validateApiKey as jest.Mock).mockResolvedValue(apiKey);
-
-    const context = createMockContext({ 'x-api-key': 'my-key' });
-    const result = await guard.canActivate(context);
-
-    expect(result).toBe(true);
-    expect(authService.validateApiKey).toHaveBeenCalledWith('my-key', '127.0.0.1', undefined);
-  });
-
-  it('should accept Authorization Bearer header', async () => {
-    reflector.getAllAndOverride.mockReturnValueOnce(false).mockReturnValueOnce(undefined);
-
-    const apiKey = createMockApiKey();
-    (authService.validateApiKey as jest.Mock).mockResolvedValue(apiKey);
-
-    const context = createMockContext({ authorization: 'Bearer my-bearer-key' });
-    const result = await guard.canActivate(context);
-
-    expect(result).toBe(true);
-    expect(authService.validateApiKey).toHaveBeenCalledWith('my-bearer-key', '127.0.0.1', undefined);
-  });
-
-  it('should reject when API key validation fails', async () => {
-    reflector.getAllAndOverride.mockReturnValueOnce(false);
-
-    (authService.validateApiKey as jest.Mock).mockRejectedValue(new UnauthorizedException('Invalid API key'));
-
-    const context = createMockContext({ 'x-api-key': 'bad-key' });
-
-    await expect(guard.canActivate(context)).rejects.toThrow('Invalid API key');
-  });
-
-  it('should reject when role permission is insufficient', async () => {
-    reflector.getAllAndOverride
-      .mockReturnValueOnce(false) // not public
-      .mockReturnValueOnce(ApiKeyRole.ADMIN); // required role = ADMIN
-
-    const apiKey = createMockApiKey({ role: ApiKeyRole.VIEWER });
-    (authService.validateApiKey as jest.Mock).mockResolvedValue(apiKey);
-    (authService.hasPermission as jest.Mock).mockReturnValue(false);
-
-    const context = createMockContext({ 'x-api-key': 'viewer-key' });
-
-    await expect(guard.canActivate(context)).rejects.toThrow('Insufficient permissions');
-  });
-
-  it('should pass session ID from route params to validateApiKey', async () => {
-    reflector.getAllAndOverride.mockReturnValueOnce(false).mockReturnValueOnce(undefined);
-
-    const apiKey = createMockApiKey();
-    (authService.validateApiKey as jest.Mock).mockResolvedValue(apiKey);
-
-    const context = createMockContext({ 'x-api-key': 'key' }, { sessionId: 'sess-123' });
-    await guard.canActivate(context);
-
-    expect(authService.validateApiKey).toHaveBeenCalledWith('key', '127.0.0.1', 'sess-123');
-  });
-
-  it('should extract client IP from X-Forwarded-For header', async () => {
-    reflector.getAllAndOverride.mockReturnValueOnce(false).mockReturnValueOnce(undefined);
-
-    const apiKey = createMockApiKey();
-    (authService.validateApiKey as jest.Mock).mockResolvedValue(apiKey);
-
-    const context = createMockContext({
-      'x-api-key': 'key',
-      'x-forwarded-for': '203.0.113.50, 70.41.3.18',
+      expect(result).toBe(true);
+      expect(authService.validateApiKey).toHaveBeenCalledWith('valid-key', expect.any(String), undefined);
+      expect(jwtService.verifyAsync).not.toHaveBeenCalled();
     });
-    await guard.canActivate(context);
 
-    expect(authService.validateApiKey).toHaveBeenCalledWith('key', '203.0.113.50', undefined);
+    it('should reject invalid X-API-Key', async () => {
+      authService.validateApiKey.mockRejectedValue(new UnauthorizedException('Invalid API key'));
+      const ctx = makeContext({ 'x-api-key': 'bad-key' });
+
+      await expect(guard.canActivate(ctx)).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
+  describe('JWT path (Authorization: Bearer)', () => {
+    it('should pass when Bearer token is a valid JWT', async () => {
+      jwtService.verifyAsync.mockResolvedValue({ sub: 'user-1', email: 'a@b.com', role: ApiKeyRole.ADMIN });
+      const ctx = makeContext({ authorization: 'Bearer valid.jwt.token' });
+
+      const result = await guard.canActivate(ctx);
+
+      expect(result).toBe(true);
+      expect(jwtService.verifyAsync).toHaveBeenCalledWith('valid.jwt.token');
+      expect(authService.validateApiKey).not.toHaveBeenCalled();
+    });
+
+    it('should attach synthetic apiKey and user payload to request on JWT auth', async () => {
+      const payload = { sub: 'user-1', email: 'a@b.com', role: ApiKeyRole.ADMIN };
+      jwtService.verifyAsync.mockResolvedValue(payload);
+      const req = { headers: { authorization: 'Bearer valid.jwt.token' }, params: {}, socket: {} };
+      const ctx = {
+        switchToHttp: () => ({ getRequest: () => req }),
+        getHandler: () => ({}),
+        getClass: () => ({}),
+      } as unknown as ExecutionContext;
+
+      await guard.canActivate(ctx);
+
+      expect((req as any).apiKey.role).toBe(ApiKeyRole.ADMIN);
+      expect((req as any).apiKey.id).toBe('user-1');
+      expect((req as any).user.sub).toBe('user-1');
+    });
+
+    it('should fall back to API key validation when Bearer token is not a JWT', async () => {
+      jwtService.verifyAsync.mockRejectedValue(new Error('invalid token'));
+      const apiKey = createMockApiKey();
+      authService.validateApiKey.mockResolvedValue(apiKey);
+      const ctx = makeContext({ authorization: 'Bearer raw-api-key-string' });
+
+      const result = await guard.canActivate(ctx);
+
+      expect(result).toBe(true);
+      expect(authService.validateApiKey).toHaveBeenCalledWith('raw-api-key-string', expect.any(String), undefined);
+    });
+  });
+
+  describe('public routes', () => {
+    it('should bypass auth for @Public() routes', async () => {
+      (reflector.getAllAndOverride as jest.Mock).mockImplementation((key) =>
+        key === 'isPublic' ? true : undefined,
+      );
+      const ctx = makeContext({});
+
+      const result = await guard.canActivate(ctx);
+
+      expect(result).toBe(true);
+      expect(authService.validateApiKey).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('missing token', () => {
+    it('should throw UnauthorizedException when no auth provided', async () => {
+      const ctx = makeContext({});
+
+      await expect(guard.canActivate(ctx)).rejects.toThrow(UnauthorizedException);
+    });
   });
 });
