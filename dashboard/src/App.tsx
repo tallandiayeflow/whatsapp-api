@@ -48,12 +48,12 @@ function AppContent() {
       if (response.ok) {
         const data = await response.json();
         setRole(data.role as UserRole);
+        setIsAuthenticated(true);
       }
     } catch {
       setRole('viewer');
+      setIsAuthenticated(true);
     }
-
-    setIsAuthenticated(true);
   };
 
   // JWT login (email/password flow)

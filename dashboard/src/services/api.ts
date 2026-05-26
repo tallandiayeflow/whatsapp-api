@@ -167,7 +167,12 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   const response = await fetch(url, { ...options, headers });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: response.statusText }));
+    if (response.status === 401) {
+      sessionStorage.removeItem('openwa_jwt');
+      sessionStorage.removeItem('openwa_api_key');
+      window.location.reload();
+    }
+    const error = await response.json().catch(() => ({ message: `HTTP ${response.status}` }));
     throw new Error(error.message || `HTTP ${response.status}`);
   }
 

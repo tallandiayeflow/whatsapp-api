@@ -57,7 +57,7 @@ export function Login({ onLogin, onLoginJwt }: LoginProps) {
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password.trim()) {
-      setError('Email and password are required');
+      setError(t('login.emailPasswordRequired', 'Email and password are required'));
       return;
     }
     setIsLoading(true);
@@ -75,7 +75,7 @@ export function Login({ onLogin, onLoginJwt }: LoginProps) {
         onLoginJwt(data.access_token, data.role as UserRole);
       } else {
         const data = await response.json().catch(() => ({}));
-        setError(data.message || 'Invalid email or password');
+        setError(data.message || t('login.invalidCredentials', 'Invalid email or password'));
       }
     } catch {
       setError(t('login.connectionError'));
@@ -151,6 +151,7 @@ export function Login({ onLogin, onLoginJwt }: LoginProps) {
                 placeholder="admin@localhost"
                 className={error ? 'error' : ''}
               />
+              {error && <span className="error-message">{error}</span>}
             </div>
             <div className="input-group">
               <label htmlFor="password">Password</label>
