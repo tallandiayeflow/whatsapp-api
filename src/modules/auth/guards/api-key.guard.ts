@@ -47,14 +47,21 @@ export class ApiKeyGuard implements CanActivate {
 
       const jwtPayload = await this.tryVerifyJwt(token);
       if (jwtPayload) {
-        const user = await this.userService.findOne(jwtPayload.sub);
+        let user;
+        try {
+          user = await this.userService.findOne(jwtPayload.sub);
+        } catch {
+          // User deleted after JWT was issued — treat as invalid token
+          throw new UnauthorizedException('Invalid or expired token');
+        }
         if (!user.isActive) {
           throw new UnauthorizedException('User account is deactivated');
         }
-        const principal = this.buildPrincipalFromJwt(jwtPayload);
+        // Use role from DB, not JWT payload, so role changes take effect immediately
+        const principal = this.buildPrincipalFromJwt({ ...jwtPayload, role: user.role });
         this.checkRole(principal, requiredRole);
         request.apiKey = principal;
-        request.user = jwtPayload;
+        request.user = { ...jwtPayload, role: user.role };
         return true;
       }
 

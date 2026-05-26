@@ -52,7 +52,7 @@ describe('ApiKeyGuard', () => {
       getAllAndOverride: jest.fn().mockReturnValue(undefined),
     };
     userService = {
-      findOne: jest.fn().mockResolvedValue({ isActive: true }),
+      findOne: jest.fn().mockResolvedValue({ id: 'user-1', isActive: true, role: ApiKeyRole.ADMIN }),
     };
 
     guard = new ApiKeyGuard(
@@ -153,7 +153,16 @@ describe('ApiKeyGuard', () => {
     it('should throw UnauthorizedException when JWT user is deactivated', async () => {
       const payload = { sub: 'user-1', email: 'a@b.com', role: ApiKeyRole.ADMIN };
       jwtService.verifyAsync.mockResolvedValue(payload);
-      userService.findOne.mockResolvedValue({ isActive: false } as any);
+      userService.findOne.mockResolvedValue({ isActive: false, role: ApiKeyRole.ADMIN } as any);
+      const ctx = makeContext({ authorization: 'Bearer valid.jwt.token' });
+
+      await expect(guard.canActivate(ctx)).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should return 401 when JWT user no longer exists in DB', async () => {
+      const payload = { sub: 'deleted-user', email: 'gone@b.com', role: ApiKeyRole.ADMIN };
+      jwtService.verifyAsync.mockResolvedValue(payload);
+      userService.findOne.mockRejectedValue(new Error('User not found'));
       const ctx = makeContext({ authorization: 'Bearer valid.jwt.token' });
 
       await expect(guard.canActivate(ctx)).rejects.toThrow(UnauthorizedException);

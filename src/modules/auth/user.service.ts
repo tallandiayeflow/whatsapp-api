@@ -53,7 +53,7 @@ export class UserService implements OnModuleInit {
 
     if (process.env.NODE_ENV === 'production') {
       try {
-        writeFileSync(ADMIN_PASSWORD_FILE, password, 'utf-8');
+        writeFileSync(ADMIN_PASSWORD_FILE, password, { encoding: 'utf-8', mode: 0o600 });
       } catch (err) {
         this.logger.warn('Could not save admin password file', { error: String(err) });
       }
@@ -63,14 +63,15 @@ export class UserService implements OnModuleInit {
   }
 
   async create(dto: CreateUserDto): Promise<User> {
-    const existing = await this.userRepository.findOne({ where: { email: dto.email } });
+    const email = dto.email.toLowerCase().trim();
+    const existing = await this.userRepository.findOne({ where: { email } });
     if (existing) {
-      throw new ConflictException(`User with email '${dto.email}' already exists`);
+      throw new ConflictException(`User with email '${email}' already exists`);
     }
 
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
     const user = this.userRepository.create({
-      email: dto.email,
+      email,
       passwordHash,
       role: dto.role ?? ApiKeyRole.OPERATOR,
     });
@@ -89,13 +90,14 @@ export class UserService implements OnModuleInit {
 
   async update(id: string, dto: UpdateUserDto): Promise<User> {
     const user = await this.findOne(id);
-    if (dto.email !== undefined && dto.email !== user.email) {
-      const existing = await this.userRepository.findOne({ where: { email: dto.email } });
+    const normalizedEmail = dto.email !== undefined ? dto.email.toLowerCase().trim() : undefined;
+    if (normalizedEmail !== undefined && normalizedEmail !== user.email) {
+      const existing = await this.userRepository.findOne({ where: { email: normalizedEmail } });
       if (existing) {
-        throw new ConflictException(`User with email '${dto.email}' already exists`);
+        throw new ConflictException(`User with email '${normalizedEmail}' already exists`);
       }
     }
-    if (dto.email !== undefined) user.email = dto.email;
+    if (normalizedEmail !== undefined) user.email = normalizedEmail;
     if (dto.role !== undefined) user.role = dto.role;
     if (dto.isActive !== undefined) user.isActive = dto.isActive;
     return this.userRepository.save(user);
@@ -107,7 +109,7 @@ export class UserService implements OnModuleInit {
   }
 
   async login(dto: LoginDto): Promise<LoginResponseDto> {
-    const user = await this.userRepository.findOne({ where: { email: dto.email } });
+    const user = await this.userRepository.findOne({ where: { email: dto.email.toLowerCase().trim() } });
 
     if (!user || !user.isActive) {
       throw new UnauthorizedException('Invalid credentials');
@@ -120,13 +122,15 @@ export class UserService implements OnModuleInit {
 
     const payload: JwtPayload = { sub: user.id, email: user.email, role: user.role };
     const token = await this.jwtService.signAsync(payload);
+    const decoded = this.jwtService.decode(token) as { exp?: number; iat?: number };
+    const expiresIn = decoded?.exp && decoded?.iat ? decoded.exp - decoded.iat : 86400;
 
     this.logger.log(`User login: ${user.email}`, { userId: user.id, action: 'user_login' });
 
     return {
       access_token: token,
       token_type: 'Bearer',
-      expires_in: 86400,
+      expires_in: expiresIn,
       role: user.role,
       email: user.email,
     };

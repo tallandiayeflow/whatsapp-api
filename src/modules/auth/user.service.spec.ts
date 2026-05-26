@@ -38,6 +38,7 @@ describe('UserService', () => {
 
     jwtService = {
       signAsync: jest.fn().mockResolvedValue('mock.jwt.token'),
+      decode: jest.fn().mockReturnValue({ iat: 0, exp: 86400 }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
