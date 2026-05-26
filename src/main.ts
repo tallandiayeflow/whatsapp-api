@@ -105,6 +105,10 @@ async function bootstrap() {
 
   // CORS Configuration (Phase 3 Security Audit)
   const allowedOrigins = process.env.CORS_ORIGINS?.split(',').map(o => o.trim()) || ['*'];
+  // Always allow localhost in non-production so the dashboard dev server works
+  if (process.env.NODE_ENV !== 'production') {
+    allowedOrigins.push('http://localhost:2886', 'http://127.0.0.1:2886');
+  }
   app.enableCors({
     origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
       // Allow requests with no origin (mobile apps, Postman, server-to-server)
@@ -114,7 +118,9 @@ async function bootstrap() {
       if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error('Not allowed by CORS'));
+        // Pass null (not an Error) so Express returns 200 with CORS headers omitted,
+        // letting the browser enforce the rejection — avoids a spurious 500.
+        callback(null, false);
       }
     },
     credentials: true,
