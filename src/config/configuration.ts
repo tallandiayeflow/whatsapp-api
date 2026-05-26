@@ -89,4 +89,10 @@ export default () => ({
       endpoint: process.env.S3_ENDPOINT,
     },
   },
+
+  // JWT configuration (email/password auth)
+  jwt: {
+    secret: process.env.JWT_SECRET || 'openwa-dev-jwt-secret-change-in-production',
+    expiresIn: process.env.JWT_EXPIRES_IN || '1d',
+  },
 });
