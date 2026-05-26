@@ -34,7 +34,52 @@ export class UserController {
     return this.userService.login(dto);
   }
 
-  // ── User management (ADMIN only) ──────────────────────────────────
+  // ── Self-service profile (JWT-only) — MUST be before /:id routes ──
+
+  @Get('users/me')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get own profile (JWT auth only)' })
+  @ApiResponse({ status: 200, type: UserResponseDto })
+  async getMe(
+    @Req() request: Request & { user?: { sub: string } },
+  ): Promise<UserResponseDto> {
+    if (!request.user?.sub) {
+      throw new ForbiddenException('Requires JWT authentication');
+    }
+    const user = await this.userService.findOne(request.user.sub);
+    return this.userService.toResponseDto(user);
+  }
+
+  @Put('users/me')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update own email (JWT auth only)' })
+  @ApiResponse({ status: 200, type: UserResponseDto })
+  async updateMe(
+    @Body() dto: UpdateMeDto,
+    @Req() request: Request & { user?: { sub: string } },
+  ): Promise<UserResponseDto> {
+    if (!request.user?.sub) {
+      throw new ForbiddenException('Requires JWT authentication');
+    }
+    const user = await this.userService.update(request.user.sub, { email: dto.email });
+    return this.userService.toResponseDto(user);
+  }
+
+  @Post('users/me/change-password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Change own password (JWT auth only)' })
+  async changePassword(
+    @Body() dto: ChangePasswordDto,
+    @Req() request: Request & { apiKey?: ApiKey; user?: { sub: string } },
+  ): Promise<void> {
+    if (!request.user?.sub) {
+      throw new ForbiddenException('Password change requires JWT authentication');
+    }
+    await this.userService.changePassword(request.user.sub, dto.oldPassword, dto.newPassword);
+  }
+
+  // ── User management (ADMIN only) ─────────────────────────────────
 
   @Post('users')
   @RequireRole(ApiKeyRole.ADMIN)
@@ -83,50 +128,5 @@ export class UserController {
   @ApiOperation({ summary: 'Delete user (admin only)' })
   async delete(@Param('id') id: string): Promise<void> {
     await this.userService.delete(id);
-  }
-
-  // ── Self-service profile (JWT-only) ──────────────────────────────
-
-  @Get('users/me')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get own profile (JWT auth only)' })
-  @ApiResponse({ status: 200, type: UserResponseDto })
-  async getMe(
-    @Req() request: Request & { user?: { sub: string } },
-  ): Promise<UserResponseDto> {
-    if (!request.user?.sub) {
-      throw new ForbiddenException('Requires JWT authentication');
-    }
-    const user = await this.userService.findOne(request.user.sub);
-    return this.userService.toResponseDto(user);
-  }
-
-  @Put('users/me')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update own email (JWT auth only)' })
-  @ApiResponse({ status: 200, type: UserResponseDto })
-  async updateMe(
-    @Body() dto: UpdateMeDto,
-    @Req() request: Request & { user?: { sub: string } },
-  ): Promise<UserResponseDto> {
-    if (!request.user?.sub) {
-      throw new ForbiddenException('Requires JWT authentication');
-    }
-    const user = await this.userService.update(request.user.sub, { email: dto.email });
-    return this.userService.toResponseDto(user);
-  }
-
-  @Post('users/me/change-password')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Change own password (JWT auth only)' })
-  async changePassword(
-    @Body() dto: ChangePasswordDto,
-    @Req() request: Request & { apiKey?: ApiKey; user?: { sub: string } },
-  ): Promise<void> {
-    if (!request.user?.sub) {
-      throw new ForbiddenException('Password change requires JWT authentication');
-    }
-    await this.userService.changePassword(request.user.sub, dto.oldPassword, dto.newPassword);
   }
 }
