@@ -24,6 +24,11 @@ interface ReconnectState {
   baseDelay: number;
 }
 
+// Backoff cap: never wait more than 5 minutes between reconnect attempts
+const MAX_RECONNECT_DELAY_MS = 5 * 60 * 1000;
+// Health check interval: verify engine state every 5 minutes
+const HEALTH_CHECK_INTERVAL_MS = 5 * 60 * 1000;
+
 @Injectable()
 export class SessionService implements OnModuleDestroy, OnModuleInit {
   private readonly logger = createLogger('SessionService');
@@ -33,6 +38,9 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
 
   // Reconnection state per session
   private reconnectStates: Map<string, ReconnectState> = new Map();
+
+  // Health check timer handle
+  private healthCheckTimer: NodeJS.Timeout | null = null;
 
   constructor(
     @InjectRepository(Session, 'data')
@@ -45,10 +53,6 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
     private readonly hookManager: HookManager,
   ) {}
 
-  /**
-   * On backend startup, reset all active session statuses to disconnected
-   * because the engines are not running yet after restart
-   */
   async onModuleInit(): Promise<void> {
     const activeStatuses = [
       SessionStatus.READY,
@@ -57,20 +61,77 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
       SessionStatus.AUTHENTICATING,
     ];
 
-    const result = await this.sessionRepository.update(
-      { status: In(activeStatuses) },
-      { status: SessionStatus.DISCONNECTED },
-    );
+    // Collect sessions that were running so we can auto-restart them
+    const sessionsToRestart = await this.sessionRepository.find({
+      where: { status: In(activeStatuses) },
+    });
 
-    if (result.affected && result.affected > 0) {
-      this.logger.log(`Reset ${result.affected} session(s) to disconnected on startup`, {
+    if (sessionsToRestart.length > 0) {
+      await this.sessionRepository.update(
+        { status: In(activeStatuses) },
+        { status: SessionStatus.DISCONNECTED },
+      );
+      this.logger.log(`Reset ${sessionsToRestart.length} session(s) to disconnected on startup`, {
         action: 'startup_reset',
-        affected: result.affected,
+        affected: sessionsToRestart.length,
       });
+
+      // Auto-restart after a short delay to let the app finish bootstrapping
+      setTimeout((): void => {
+        for (const session of sessionsToRestart) {
+          this.logger.log(`Auto-restarting session: ${session.name}`, {
+            sessionId: session.id,
+            action: 'auto_restart',
+          });
+          void this.start(session.id).catch((err: unknown) => {
+            this.logger.error(
+              `Failed to auto-restart session ${session.name}`,
+              err instanceof Error ? err.message : String(err),
+              { sessionId: session.id, action: 'auto_restart_failed' },
+            );
+          });
+        }
+      }, 5000).unref();
+    }
+
+    // Periodic health check: detect engines that silently dropped their connection
+    this.healthCheckTimer = setInterval(() => {
+      void this.runHealthCheck();
+    }, HEALTH_CHECK_INTERVAL_MS).unref(); // .unref() so the timer doesn't block process exit in tests
+  }
+
+  private async runHealthCheck(): Promise<void> {
+    const readySessions = await this.sessionRepository.find({
+      where: { status: SessionStatus.READY },
+    });
+
+    for (const session of readySessions) {
+      const engine = this.engines.get(session.id);
+      const engineAlive = engine && engine.getStatus() === EngineStatus.READY;
+
+      if (!engineAlive) {
+        this.logger.warn(`Health check: session ${session.name} marked READY but engine is gone — reconnecting`, {
+          sessionId: session.id,
+          action: 'health_check_reconnect',
+        });
+        void this.updateStatus(session.id, SessionStatus.DISCONNECTED);
+
+        // Ensure reconnect state exists
+        if (!this.reconnectStates.has(session.id)) {
+          this.reconnectStates.set(session.id, { attempts: 0, timer: null, maxAttempts: 0, baseDelay: 5000 });
+        }
+        this.scheduleReconnect(session.id, session);
+      }
     }
   }
 
   async onModuleDestroy(): Promise<void> {
+    // Stop health check
+    if (this.healthCheckTimer) {
+      clearInterval(this.healthCheckTimer);
+      this.healthCheckTimer = null;
+    }
+
     // Clean up all engines on shutdown
     for (const [sessionId, engine] of this.engines) {
       this.logger.log(`Destroying engine for session ${sessionId}`, {
@@ -209,7 +270,8 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
     this.reconnectStates.set(id, {
       attempts: 0,
       timer: null,
-      maxAttempts: config?.maxReconnectAttempts ?? 5,
+      // 0 = unlimited retries (default). Set maxReconnectAttempts in session config to limit.
+      maxAttempts: config?.maxReconnectAttempts ?? 0,
       baseDelay: config?.reconnectBaseDelay ?? 5000,
     });
 
@@ -357,8 +419,9 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
     const state = this.reconnectStates.get(id);
     if (!state) return;
 
-    if (state.attempts >= state.maxAttempts) {
-      this.logger.error(`Max reconnect attempts reached for session: ${session.name}`, undefined, {
+    // maxAttempts=0 means unlimited; >0 means stop after that many attempts
+    if (state.maxAttempts > 0 && state.attempts >= state.maxAttempts) {
+      this.logger.error(`Max reconnect attempts (${state.maxAttempts}) reached for session: ${session.name}`, undefined, {
         sessionId: id,
         attempts: state.attempts,
         action: 'reconnect_failed',
@@ -366,12 +429,14 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
       return;
     }
 
-    // Exponential backoff: baseDelay * 2^attempts (with jitter)
-    const delay = state.baseDelay * Math.pow(2, state.attempts) + Math.random() * 1000;
+    // Exponential backoff capped at MAX_RECONNECT_DELAY_MS (5 min), with jitter
+    const raw = state.baseDelay * Math.pow(2, state.attempts);
+    const delay = Math.min(raw, MAX_RECONNECT_DELAY_MS) + Math.random() * 1000;
     state.attempts++;
 
+    const limitLabel = state.maxAttempts > 0 ? `/${state.maxAttempts}` : ' (unlimited)';
     this.logger.log(
-      `Scheduling reconnect attempt ${state.attempts}/${state.maxAttempts} in ${Math.round(delay / 1000)}s`,
+      `Scheduling reconnect attempt ${state.attempts}${limitLabel} in ${Math.round(delay / 1000)}s`,
       {
         sessionId: id,
         attempt: state.attempts,
@@ -382,7 +447,7 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
 
     state.timer = setTimeout(() => {
       void this.executeReconnect(id, session, state);
-    }, delay);
+    }, delay).unref();
   }
 
   private async executeReconnect(id: string, session: Session, state: ReconnectState): Promise<void> {

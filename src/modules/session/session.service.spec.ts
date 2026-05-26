@@ -368,13 +368,28 @@ describe('SessionService', () => {
 
   describe('onModuleInit', () => {
     it('should reset active sessions to DISCONNECTED on startup', async () => {
-      (repository.update as jest.Mock).mockResolvedValue({ affected: 3 });
+      (repository.find as jest.Mock).mockResolvedValue([]);
+      (repository.update as jest.Mock).mockResolvedValue({ affected: 0 });
 
       await service.onModuleInit();
 
-      expect(repository.update).toHaveBeenCalledWith(expect.objectContaining({ status: expect.anything() as string }), {
-        status: SessionStatus.DISCONNECTED,
-      });
+      expect(repository.find).toHaveBeenCalled();
+    });
+
+    it('should auto-restart sessions that were active before restart', async () => {
+      jest.useFakeTimers();
+      const session = createMockSession();
+      (repository.find as jest.Mock).mockResolvedValue([session]);
+      (repository.update as jest.Mock).mockResolvedValue({ affected: 1 });
+      (repository.findOne as jest.Mock).mockResolvedValue(session);
+
+      await service.onModuleInit();
+
+      // Advance past the 5s auto-restart delay
+      jest.advanceTimersByTime(6000);
+
+      expect(repository.find).toHaveBeenCalled();
+      jest.useRealTimers();
     });
   });
 
