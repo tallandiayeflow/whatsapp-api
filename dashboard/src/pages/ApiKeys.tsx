@@ -154,7 +154,7 @@ export function ApiKeys() {
               <button
                 className="icon-btn"
                 onClick={() => copyToClipboard(apiKey.keyPrefix, apiKey.id)}
-                title={t('apiKeys.actions.copy')}
+                title="Copy key prefix (full key only shown at creation)"
               >
                 {copied === apiKey.id ? <Check size={16} /> : <Copy size={16} />}
               </button>
@@ -291,6 +291,12 @@ export function ApiKeys() {
       )}
 
       <div className="api-keys-content">
+        {apiKeys.length > 0 && (
+          <div className="api-keys-notice">
+            <AlertTriangle size={14} />
+            Full API keys are only shown once at creation — they cannot be recovered. The copy button copies the key prefix only.
+          </div>
+        )}
         <div className="keys-table-container">
           {apiKeys.length === 0 ? (
             <div className="empty-table-state">
