@@ -9,7 +9,7 @@ import {
 import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import { Repository, In, DataSource } from 'typeorm';
 import { Session, SessionStatus } from './entities/session.entity';
-import { CreateSessionDto, UpdateSessionWebhookDto } from './dto';
+import { CreateSessionDto, UpdateSessionWebhookDto, UpdateSessionProxyDto } from './dto';
 import { EngineFactory } from '../../engine/engine.factory';
 import { IWhatsAppEngine, EngineStatus } from '../../engine/interfaces/whatsapp-engine.interface';
 import { createLogger } from '../../common/services/logger.service';
@@ -628,6 +628,17 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
    */
   isActive(id: string): boolean {
     return this.engines.has(id);
+  }
+
+  /**
+   * Update per-session proxy configuration
+   * Note: changes only take effect after the session is restarted
+   */
+  async updateProxy(id: string, dto: UpdateSessionProxyDto): Promise<Session> {
+    const session = await this.findOne(id);
+    if (dto.proxyUrl !== undefined) session.proxyUrl = dto.proxyUrl ?? null;
+    if (dto.proxyType !== undefined) session.proxyType = dto.proxyType ?? null;
+    return this.sessionRepository.save(session);
   }
 
   /**

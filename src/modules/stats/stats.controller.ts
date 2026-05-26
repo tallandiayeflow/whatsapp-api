@@ -2,9 +2,12 @@ import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { StatsService } from './stats.service';
 import { StatsQueryDto } from './dto/stats-query.dto';
+import { RequireRole } from '../auth/decorators/auth.decorators';
+import { ApiKeyRole } from '../auth/entities/api-key.entity';
 
 @ApiTags('Statistics')
 @ApiBearerAuth()
+@RequireRole(ApiKeyRole.VIEWER)
 @Controller('stats')
 export class StatsController {
   constructor(private readonly statsService: StatsService) {}

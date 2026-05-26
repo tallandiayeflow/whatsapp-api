@@ -61,7 +61,8 @@
     "messageTester": "Message Tester",
     "infrastructure": "Infrastructure",
     "plugins": "Plugins",
-    "logs": "Logs"
+    "logs": "Logs",
+    "stats": "Statistics"
   },
   "errorBoundary": {
     "title": "Something went wrong",
@@ -180,7 +181,8 @@
       "start": "Start",
       "stop": "Stop",
       "reconnect": "Reconnect",
-      "delete": "Delete"
+      "delete": "Delete",
+      "proxy": "Proxy"
     },
     "toasts": {
       "readyTitle": "Session Ready",
@@ -192,6 +194,19 @@
       "phone": "Phone",
       "sessionId": "Session ID",
       "lastActive": "Last Active"
+    },
+    "proxy": {
+      "title": "Configure Proxy",
+      "urlLabel": "Proxy URL",
+      "urlPlaceholder": "http://user:pass@proxy.example.com:8080",
+      "typeLabel": "Proxy Type",
+      "clearBtn": "Clear Proxy",
+      "successTitle": "Proxy Saved",
+      "successDesc": "Proxy configuration updated",
+      "clearedTitle": "Proxy Cleared",
+      "clearedDesc": "Proxy configuration removed",
+      "errorTitle": "Proxy Error",
+      "errorDefault": "Failed to update proxy"
     }
   },
   "webhooks": {
@@ -465,6 +480,25 @@
     "toasts": {
       "saveFailed": "Save Failed"
     }
+  },
+  "stats": {
+    "title": "Statistics",
+    "subtitle": "Session metrics and system overview",
+    "cards": {
+      "total": "Total Sessions",
+      "active": "Active (Ready)",
+      "disconnected": "Disconnected",
+      "memory": "Memory Used"
+    },
+    "sessionsTable": "Sessions Overview",
+    "columns": {
+      "name": "Name",
+      "phone": "Phone",
+      "status": "Status",
+      "lastActive": "Last Active"
+    },
+    "noSessions": "No sessions found",
+    "loadError": "Failed to load stats"
   },
   "plugins": {
     "title": "Plugins",

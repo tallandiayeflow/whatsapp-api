@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Patch, Delete, Param, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { SessionService } from './session.service';
-import { CreateSessionDto, SessionResponseDto, QRCodeResponseDto, UpdateSessionWebhookDto } from './dto';
+import { CreateSessionDto, SessionResponseDto, QRCodeResponseDto, UpdateSessionWebhookDto, UpdateSessionProxyDto } from './dto';
 import { Session } from './entities/session.entity';
 import { AuditService } from '../audit/audit.service';
 import { AuditAction } from '../audit/entities/audit-log.entity';
@@ -200,5 +200,25 @@ export class SessionController {
     @Body() dto: UpdateSessionWebhookDto,
   ): Promise<Session> {
     return this.sessionService.updateWebhookConfig(id, dto);
+  }
+
+  @Patch(':id/proxy')
+  @RequireRole(ApiKeyRole.ADMIN)
+  @ApiOperation({
+    summary: 'Update per-session proxy configuration',
+    description: 'Changing proxy only takes effect after session restart',
+  })
+  @ApiParam({ name: 'id', description: 'Session ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Proxy configuration updated',
+    type: SessionResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Session not found' })
+  async updateProxy(
+    @Param('id') id: string,
+    @Body() dto: UpdateSessionProxyDto,
+  ): Promise<Session> {
+    return this.sessionService.updateProxy(id, dto);
   }
 }

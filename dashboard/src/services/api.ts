@@ -16,6 +16,8 @@ export interface Session {
   lastActive?: string;
   createdAt: string;
   updatedAt: string;
+  proxyUrl?: string;
+  proxyType?: string;
 }
 
 export interface SessionStats {
@@ -202,6 +204,11 @@ export const sessionApi = {
   getQR: (id: string) => request<{ qrCode: string; status: string }>(`/sessions/${id}/qr`),
   getStats: () => request<SessionStats>('/sessions/stats/overview'),
   getGroups: (id: string) => request<{ id: string; name: string }[]>(`/sessions/${id}/groups`),
+  updateProxy: (id: string, data: { proxyUrl?: string | null; proxyType?: string | null }) =>
+    request<Session>(`/sessions/${id}/proxy`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
 };
 
 // =============================================================================

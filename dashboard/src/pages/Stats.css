@@ -1,0 +1,66 @@
+.stats-page {
+  padding: 2rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.stats-table-section {
+  background: var(--bg-white);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.stats-table-section .sessions-table {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  font-size: 0.875rem;
+}
+
+.stats-table-section .sessions-table .table-header,
+.stats-table-section .sessions-table .table-row {
+  display: grid;
+  grid-template-columns: 180px 200px 140px 1fr;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  align-items: center;
+}
+
+.stats-table-section .sessions-table .table-header {
+  background: var(--bg-light);
+  border-radius: var(--radius) var(--radius) 0 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border);
+}
+
+.stats-table-section .sessions-table .table-row {
+  border-bottom: 1px solid var(--border);
+}
+
+.stats-table-section .sessions-table .table-row:last-child {
+  border-bottom: none;
+}
+
+@media (max-width: 768px) {
+  .stats-page {
+    padding: 1rem;
+  }
+
+  .stats-table-section .sessions-table .table-header,
+  .stats-table-section .sessions-table .table-row {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .stats-table-section .sessions-table .table-header span:nth-child(4),
+  .stats-table-section .sessions-table .table-row > *:nth-child(4) {
+    display: none;
+  }
+}

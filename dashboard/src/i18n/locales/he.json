@@ -61,7 +61,8 @@
     "messageTester": "בדיקת הודעות",
     "infrastructure": "תשתית",
     "plugins": "תוספים",
-    "logs": "לוגים"
+    "logs": "לוגים",
+    "stats": "סטטיסטיקות"
   },
   "errorBoundary": {
     "title": "משהו השתבש",
@@ -180,7 +181,8 @@
       "start": "הפעלה",
       "stop": "עצירה",
       "reconnect": "התחברות מחדש",
-      "delete": "מחיקה"
+      "delete": "מחיקה",
+      "proxy": "פרוקסי"
     },
     "toasts": {
       "readyTitle": "ה-Session מוכן",
@@ -192,6 +194,19 @@
       "phone": "טלפון",
       "sessionId": "מזהה Session",
       "lastActive": "פעילות אחרונה"
+    },
+    "proxy": {
+      "title": "הגדרת פרוקסי",
+      "urlLabel": "כתובת פרוקסי",
+      "urlPlaceholder": "http://user:pass@proxy.example.com:8080",
+      "typeLabel": "סוג פרוקסי",
+      "clearBtn": "נקה פרוקסי",
+      "successTitle": "הפרוקסי נשמר",
+      "successDesc": "הגדרת הפרוקסי עודכנה",
+      "clearedTitle": "הפרוקסי נמחק",
+      "clearedDesc": "הגדרת הפרוקסי הוסרה",
+      "errorTitle": "שגיאת פרוקסי",
+      "errorDefault": "עדכון הפרוקסי נכשל"
     }
   },
   "webhooks": {
@@ -465,6 +480,25 @@
     "toasts": {
       "saveFailed": "השמירה נכשלה"
     }
+  },
+  "stats": {
+    "title": "סטטיסטיקות",
+    "subtitle": "מדדי Sessions וסקירת המערכת",
+    "cards": {
+      "total": "סך הכל Sessions",
+      "active": "פעיל (מחובר)",
+      "disconnected": "מנותק",
+      "memory": "זיכרון בשימוש"
+    },
+    "sessionsTable": "סקירת Sessions",
+    "columns": {
+      "name": "שם",
+      "phone": "טלפון",
+      "status": "סטטוס",
+      "lastActive": "פעילות אחרונה"
+    },
+    "noSessions": "לא נמצאו Sessions",
+    "loadError": "טעינת הסטטיסטיקות נכשלה"
   },
   "plugins": {
     "title": "תוספים",

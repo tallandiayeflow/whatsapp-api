@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
-import { Plus, QrCode, RefreshCw, Trash2, Eye, Loader2, Play, Square, X, Search, Filter } from 'lucide-react';
+import { Plus, QrCode, RefreshCw, Trash2, Eye, Loader2, Play, Square, X, Search, Filter, Settings2 } from 'lucide-react';
 import { sessionApi, type Session } from '../services/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useToast } from '../components/Toast';
@@ -25,6 +25,10 @@ export function Sessions() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [proxySession, setProxySession] = useState<Session | null>(null);
+  const [proxyUrl, setProxyUrl] = useState('');
+  const [proxyType, setProxyType] = useState('http');
+  const [proxySaving, setProxySaving] = useState(false);
 
   useWebSocket({
     onSessionStatus: useCallback(
@@ -166,6 +170,47 @@ export function Sessions() {
     } catch (err) {
       console.error('Failed to stop:', err);
       fetchSessions();
+    }
+  };
+
+  const openProxyModal = (session: Session) => {
+    setProxySession(session);
+    setProxyUrl(session.proxyUrl ?? '');
+    setProxyType(session.proxyType ?? 'http');
+  };
+
+  const handleSaveProxy = async () => {
+    if (!proxySession) return;
+    try {
+      setProxySaving(true);
+      const updated = await sessionApi.updateProxy(proxySession.id, {
+        proxyUrl: proxyUrl.trim() || null,
+        proxyType: proxyUrl.trim() ? proxyType : null,
+      });
+      setSessions(prev => prev.map(s => (s.id === updated.id ? updated : s)));
+      toast.success(t('sessions.proxy.successTitle'), t('sessions.proxy.successDesc'));
+      setProxySession(null);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : t('sessions.proxy.errorDefault');
+      toast.error(t('sessions.proxy.errorTitle'), msg);
+    } finally {
+      setProxySaving(false);
+    }
+  };
+
+  const handleClearProxy = async () => {
+    if (!proxySession) return;
+    try {
+      setProxySaving(true);
+      const updated = await sessionApi.updateProxy(proxySession.id, { proxyUrl: null, proxyType: null });
+      setSessions(prev => prev.map(s => (s.id === updated.id ? updated : s)));
+      toast.success(t('sessions.proxy.clearedTitle'), t('sessions.proxy.clearedDesc'));
+      setProxySession(null);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : t('sessions.proxy.errorDefault');
+      toast.error(t('sessions.proxy.errorTitle'), msg);
+    } finally {
+      setProxySaving(false);
     }
   };
 
@@ -427,6 +472,58 @@ export function Sessions() {
         </div>
       )}
 
+      {proxySession && (
+        <div className="modal-overlay" onClick={() => setProxySession(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>{t('sessions.proxy.title')}</h2>
+              <button className="btn-icon" onClick={() => setProxySession(null)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <label>{t('sessions.proxy.urlLabel')}</label>
+              <input
+                type="text"
+                placeholder={t('sessions.proxy.urlPlaceholder')}
+                value={proxyUrl}
+                onChange={e => setProxyUrl(e.target.value)}
+              />
+              <label style={{ marginTop: '1rem' }}>{t('sessions.proxy.typeLabel')}</label>
+              <div className="filter-group" style={{ marginTop: '0.5rem' }}>
+                <select value={proxyType} onChange={e => setProxyType(e.target.value)}>
+                  <option value="http">http</option>
+                  <option value="https">https</option>
+                  <option value="socks4">socks4</option>
+                  <option value="socks5">socks5</option>
+                </select>
+              </div>
+            </div>
+            <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
+              <button
+                className="btn-danger"
+                onClick={() => void handleClearProxy()}
+                disabled={proxySaving}
+              >
+                {t('sessions.proxy.clearBtn')}
+              </button>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button className="btn-secondary" onClick={() => setProxySession(null)}>
+                  {t('common.cancel')}
+                </button>
+                <button
+                  className="btn-primary"
+                  onClick={() => void handleSaveProxy()}
+                  disabled={proxySaving}
+                >
+                  {proxySaving ? <Loader2 className="animate-spin" size={16} /> : t('common.save')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="sessions-grid">
         {filteredSessions.length === 0 ? (
           <div className="empty-state">
@@ -476,6 +573,12 @@ export function Sessions() {
                   <Eye size={16} />
                   {t('sessions.actions.view')}
                 </button>
+                {canWrite && (
+                  <button className="btn-action" onClick={() => openProxyModal(session)}>
+                    <Settings2 size={16} />
+                    {t('sessions.actions.proxy')}
+                  </button>
+                )}
                 {canWrite &&
                 (session.status === 'created' || session.status === 'idle' || session.status === 'disconnected') ? (
                   <button className="btn-action" onClick={() => handleStart(session.id)}>
