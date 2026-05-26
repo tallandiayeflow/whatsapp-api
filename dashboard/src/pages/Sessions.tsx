@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
-import { Plus, QrCode, RefreshCw, Trash2, Eye, Loader2, Play, Square, X, Search, Filter, Settings2 } from 'lucide-react';
+import { Plus, QrCode, RefreshCw, Trash2, Eye, Loader2, Play, Square, X, Search, Filter, Settings2, AlertCircle } from 'lucide-react';
 import { sessionApi, type Session } from '../services/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useToast } from '../components/Toast';
@@ -21,6 +21,9 @@ export function Sessions() {
   const [newSessionName, setNewSessionName] = useState('');
   const [creating, setCreating] = useState(false);
   const [qrData, setQrData] = useState<{ sessionId: string; sessionName: string; qrCode: string } | null>(null);
+  const [qrCountdown, setQrCountdown] = useState(0);
+  const [qrExpired, setQrExpired] = useState(false);
+  const qrCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
@@ -65,21 +68,42 @@ export function Sessions() {
   const qrRefreshInterval = useRef<ReturnType<typeof setInterval> | null>(null);
   const currentSessionName = useRef<string>('');
 
+  const startQrCountdown = useCallback(() => {
+    if (qrCountdownRef.current) clearInterval(qrCountdownRef.current);
+    setQrCountdown(60);
+    setQrExpired(false);
+    qrCountdownRef.current = setInterval(() => {
+      setQrCountdown(prev => {
+        if (prev <= 1) {
+          if (qrCountdownRef.current) clearInterval(qrCountdownRef.current);
+          setQrExpired(true);
+          if (qrRefreshInterval.current) clearInterval(qrRefreshInterval.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, []);
+
   const fetchQR = useCallback(async (sessionId: string) => {
     try {
       const qr = await sessionApi.getQR(sessionId);
-      setQrData({ sessionId, sessionName: currentSessionName.current, qrCode: qr.qrCode });
       if (qr.status === 'ready') {
         setQrData(null);
         currentSessionName.current = '';
         fetchSessions();
+      } else {
+        setQrData({ sessionId, sessionName: currentSessionName.current, qrCode: qr.qrCode });
+        if (qr.qrCode) {
+          startQrCountdown();
+        }
       }
     } catch {
       setQrData(null);
       currentSessionName.current = '';
       fetchSessions();
     }
-  }, [fetchSessions]);
+  }, [fetchSessions, startQrCountdown]);
 
   useEffect(() => {
     if (qrData) {
@@ -87,9 +111,12 @@ export function Sessions() {
       qrRefreshInterval.current = setInterval(() => {
         fetchQR(qrData.sessionId);
       }, 5000);
+    } else {
+      if (qrCountdownRef.current) clearInterval(qrCountdownRef.current);
     }
     return () => {
       if (qrRefreshInterval.current) clearInterval(qrRefreshInterval.current);
+      if (qrCountdownRef.current) clearInterval(qrCountdownRef.current);
     };
   }, [qrData, fetchQR]);
 
@@ -142,7 +169,7 @@ export function Sessions() {
       await fetchSessions();
       handleShowQR(id);
     } catch (err) {
-      console.error('Failed to start:', err);
+      toast.error(t('sessions.start.errorTitle', 'Erreur'), err instanceof Error ? err.message : t('common.unknownError'));
       await fetchSessions();
       if (err instanceof Error && err.message.includes('already started')) {
         handleShowQR(id);
@@ -153,12 +180,15 @@ export function Sessions() {
   const handleShowQR = async (id: string) => {
     const session = sessions.find(s => s.id === id);
     const sessionName = session?.name || '';
+    currentSessionName.current = sessionName;
     try {
       const qr = await sessionApi.getQR(id);
       setQrData({ sessionId: id, sessionName, qrCode: qr.qrCode });
+      if (qr.qrCode) {
+        startQrCountdown();
+      }
     } catch (err) {
-      console.error('Failed to get QR:', err);
-      setError(t('sessions.qr.unavailable'));
+      toast.error(t('sessions.qr.errorTitle', 'Erreur QR'), err instanceof Error ? err.message : t('sessions.qr.unavailable'));
     }
   };
 
@@ -168,7 +198,7 @@ export function Sessions() {
       setSessions(sessions.map(s => (s.id === id ? { ...s, status: 'disconnected' } : s)));
       if (qrData?.sessionId === id) setQrData(null);
     } catch (err) {
-      console.error('Failed to stop:', err);
+      toast.error(t('sessions.stop.errorTitle', 'Erreur'), err instanceof Error ? err.message : t('common.unknownError'));
       fetchSessions();
     }
   };
@@ -370,7 +400,18 @@ export function Sessions() {
               </button>
             </div>
             <div className="modal-body" style={{ textAlign: 'center' }}>
-              {qrData.qrCode ? (
+              {qrExpired ? (
+                <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+                  <AlertCircle size={48} color="orange" />
+                  <p>{t('sessions.qr.expired')}</p>
+                  <button
+                    className="btn-primary"
+                    onClick={() => { setQrExpired(false); fetchQR(qrData.sessionId); }}
+                  >
+                    {t('sessions.qr.refresh')}
+                  </button>
+                </div>
+              ) : qrData.qrCode ? (
                 <>
                   <img src={qrData.qrCode} alt="QR" style={{ maxWidth: '280px', borderRadius: '12px' }} />
                   <div className="qr-instructions">
@@ -380,6 +421,9 @@ export function Sessions() {
                   </div>
                   <p className="qr-auto-refresh">
                     <RefreshCw size={14} className="spin-slow" /> {t('sessions.qr.autoRefresh')}
+                  </p>
+                  <p style={{ fontSize: '0.85rem', color: qrCountdown <= 15 ? '#DC2626' : 'var(--text-muted)', marginTop: '0.5rem' }}>
+                    {t('sessions.qr.expiresIn', { seconds: qrCountdown })}
                   </p>
                 </>
               ) : (

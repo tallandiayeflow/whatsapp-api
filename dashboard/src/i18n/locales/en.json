@@ -62,7 +62,8 @@
     "infrastructure": "Infrastructure",
     "plugins": "Plugins",
     "logs": "Logs",
-    "stats": "Statistics"
+    "stats": "Statistics",
+    "channels": "Channels"
   },
   "errorBoundary": {
     "title": "Something went wrong",
@@ -499,6 +500,33 @@
     },
     "noSessions": "No sessions found",
     "loadError": "Failed to load stats"
+  },
+  "channels": {
+    "title": "WhatsApp Channels",
+    "subtitle": "Manage your subscriptions to WhatsApp newsletters and channels",
+    "session": "Session",
+    "noReadySession": "No active session",
+    "subscribe": "Subscribe",
+    "subscribeTitle": "Subscribe to a Channel",
+    "subscribeHint": "Enter the channel invite code (e.g. from a whatsapp.com/channel/... link)",
+    "inviteCode": "Invite Code",
+    "subscribeSuccess": "Subscribed",
+    "subscribeSuccessDesc": "Successfully subscribed to channel",
+    "subscribeError": "Error",
+    "unsubscribe": "Unsubscribe",
+    "unsubscribeSuccess": "Unsubscribed",
+    "unsubscribeSuccessDesc": "Successfully unsubscribed",
+    "unsubscribeError": "Error",
+    "confirmUnsubscribe": "Confirm Unsubscription",
+    "confirmUnsubscribeDesc": "Unsubscribe from this channel?",
+    "name": "Name",
+    "description": "Description",
+    "subscribers": "Subscribers",
+    "verified": "Verified",
+    "empty": "No channels",
+    "emptyDesc": "Subscribe to a WhatsApp channel using an invite code",
+    "errorLoad": "Error",
+    "errorLoadDesc": "Failed to load channels"
   },
   "plugins": {
     "title": "Plugins",

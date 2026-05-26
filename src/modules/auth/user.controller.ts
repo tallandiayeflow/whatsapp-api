@@ -1,7 +1,7 @@
 import { Controller, Post, Get, Put, Delete, Body, Param, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { UserService } from './user.service';
-import { CreateUserDto, UpdateUserDto, UserResponseDto, LoginDto, LoginResponseDto } from './dto/user.dto';
+import { CreateUserDto, UpdateUserDto, UserResponseDto, LoginDto, LoginResponseDto, ForgotPasswordDto, ResetPasswordDto } from './dto/user.dto';
 import { ApiKeyRole } from './entities/api-key.entity';
 import { Public, RequireRole } from './decorators/auth.decorators';
 
@@ -19,6 +19,26 @@ export class UserController {
   @ApiResponse({ status: 200, type: LoginResponseDto })
   async login(@Body() dto: LoginDto): Promise<LoginResponseDto> {
     return this.userService.login(dto);
+  }
+
+  @Post('forgot-password')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Request a password reset token (self-hosted: token logged to console)' })
+  @ApiResponse({ status: 200, description: 'Reset token generated (check server logs)' })
+  async forgotPassword(@Body() dto: ForgotPasswordDto): Promise<{ message: string }> {
+    const token = await this.userService.requestPasswordReset(dto.email);
+    return { message: `Reset token generated. Check server logs for the token. (Dev hint: ${token})` };
+  }
+
+  @Post('reset-password')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reset password using a reset token' })
+  @ApiResponse({ status: 200, description: 'Password reset successfully' })
+  async resetPassword(@Body() dto: ResetPasswordDto): Promise<{ message: string }> {
+    await this.userService.resetPassword(dto.token, dto.newPassword);
+    return { message: 'Password reset successfully' };
   }
 
   // ── User management (ADMIN only) ─────────────────────────────────

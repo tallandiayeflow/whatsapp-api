@@ -20,6 +20,7 @@ const Infrastructure = lazy(() => import('./pages/Infrastructure').then(m => ({ 
 const Plugins = lazy(() => import('./pages/Plugins'));
 const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.Profile })));
 const Stats = lazy(() => import('./pages/Stats').then(m => ({ default: m.Stats })));
+const Channels = lazy(() => import('./pages/Channels').then(m => ({ default: m.Channels })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -137,6 +138,7 @@ function AppContent() {
               {role === 'admin' && <Route path="plugins" element={<Plugins />} />}
               <Route path="profile" element={<Profile />} />
               <Route path="stats" element={<Stats />} />
+              <Route path="channels" element={<Channels />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
           </Routes>

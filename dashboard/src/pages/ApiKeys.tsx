@@ -13,6 +13,7 @@ import { sessionApi, apiKeyApi } from '../services/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useApiKeysQuery, useCreateApiKeyMutation, useDeleteApiKeyMutation, useRevokeApiKeyMutation } from '../hooks/queries';
 import { useQueryClient } from '@tanstack/react-query';
+import { useToast } from '../components/Toast';
 import { PageHeader } from '../components/PageHeader';
 import './ApiKeys.css';
 
@@ -33,6 +34,7 @@ const columnHelper = createColumnHelper<ApiKey>();
 export function ApiKeys() {
   const { t } = useTranslation();
   useDocumentTitle(t('apiKeys.title'));
+  const toast = useToast();
   const { data: apiKeys = [], isLoading: loading } = useApiKeysQuery();
   const createMutation = useCreateApiKeyMutation();
   const deleteMutation = useDeleteApiKeyMutation();
@@ -73,7 +75,7 @@ export function ApiKeys() {
       setCreatedKey(created.apiKey || null);
       setNewKey({ name: '', role: 'operator', defaultSessionId: '' });
     } catch (err) {
-      console.error('Failed to create:', err);
+      toast.error('Erreur', err instanceof Error ? err.message : 'Impossible de créer la clé');
     }
   };
 
@@ -86,7 +88,7 @@ export function ApiKeys() {
       void queryClient.invalidateQueries({ queryKey: ['apiKeys'] });
       setLinkTarget(null);
     } catch (err) {
-      console.error('Failed to link session:', err);
+      toast.error('Erreur', err instanceof Error ? err.message : 'Impossible de lier la session');
     }
   };
 
@@ -94,7 +96,7 @@ export function ApiKeys() {
     try {
       await revokeMutation.mutateAsync(id);
     } catch (err) {
-      console.error('Failed to revoke:', err);
+      toast.error('Erreur', err instanceof Error ? err.message : 'Impossible de révoquer la clé');
     }
   };
 
@@ -102,7 +104,7 @@ export function ApiKeys() {
     try {
       await deleteMutation.mutateAsync(id);
     } catch (err) {
-      console.error('Failed to delete:', err);
+      toast.error('Erreur', err instanceof Error ? err.message : 'Impossible de supprimer la clé');
     }
   };
 

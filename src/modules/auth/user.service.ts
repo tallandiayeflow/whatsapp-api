@@ -23,6 +23,7 @@ export interface JwtPayload {
 @Injectable()
 export class UserService implements OnModuleInit {
   private readonly logger = createLogger('UserService');
+  private readonly resetTokens = new Map<string, { email: string; expiresAt: number }>();
 
   constructor(
     @InjectRepository(User, 'main')
@@ -128,6 +129,31 @@ export class UserService implements OnModuleInit {
       role: user.role,
       email: user.email,
     };
+  }
+
+  async requestPasswordReset(email: string): Promise<string> {
+    const user = await this.userRepository.findOne({ where: { email: email.toLowerCase().trim() } });
+    const token = randomBytes(3).toString('hex');
+    if (user) {
+      this.resetTokens.set(token, { email: user.email.toLowerCase(), expiresAt: Date.now() + 15 * 60 * 1000 });
+      this.logger.log('Password reset token generated', { email, token, action: 'password_reset_request' });
+    }
+    return token;
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    const entry = this.resetTokens.get(token);
+    if (!entry || entry.expiresAt < Date.now()) {
+      throw new UnauthorizedException('Invalid or expired reset token');
+    }
+    const user = await this.userRepository.findOne({ where: { email: entry.email } });
+    if (!user) {
+      throw new UnauthorizedException('Invalid or expired reset token');
+    }
+    user.passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+    await this.userRepository.save(user);
+    this.resetTokens.delete(token);
+    this.logger.log('Password reset completed', { email: entry.email, action: 'password_reset' });
   }
 
   async changePassword(userId: string, oldPassword: string, newPassword: string): Promise<void> {

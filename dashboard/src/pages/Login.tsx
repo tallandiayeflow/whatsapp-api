@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Eye, EyeOff, Github } from 'lucide-react';
+import { Eye, EyeOff, Github, Loader2 } from 'lucide-react';
 import { API_BASE_URL } from '../services/api';
 import type { UserRole } from '../hooks/useRole';
 import './Login.css';
@@ -25,6 +25,13 @@ export function Login({ onLogin, onLoginJwt }: LoginProps) {
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Forgot / reset password state
+  const [view, setView] = useState<'login' | 'forgot' | 'reset'>('login');
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [resetToken, setResetToken] = useState('');
+  const [resetNewPassword, setResetNewPassword] = useState('');
+  const [resetMessage, setResetMessage] = useState('');
 
   const handleApiKeySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,6 +90,177 @@ export function Login({ onLogin, onLoginJwt }: LoginProps) {
       setIsLoading(false);
     }
   };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail.trim()) return;
+    setIsLoading(true);
+    setError('');
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail }),
+      });
+      const data = await response.json();
+      setResetMessage(data.message || 'Token generated — check server logs');
+      setView('reset');
+    } catch {
+      setError('Connection error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetToken.trim() || !resetNewPassword.trim()) return;
+    setIsLoading(true);
+    setError('');
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: resetToken, newPassword: resetNewPassword }),
+      });
+      if (response.ok) {
+        setView('login');
+        setError('');
+        setResetToken('');
+        setResetNewPassword('');
+      } else {
+        const data = await response.json().catch(() => ({}));
+        setError(data.message || 'Invalid or expired token');
+      }
+    } catch {
+      setError('Connection error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (view === 'forgot') {
+    return (
+      <div className="login-container">
+        <div className="login-card">
+          <div className="login-logo">
+            <img src="/openwa_logo.webp" alt="OpenWA" className="logo-icon" />
+            <span className="version-info">
+              {t('login.version', {
+                version: __APP_VERSION__,
+                date: new Date(__BUILD_TIME__).toLocaleDateString(),
+              })}
+            </span>
+          </div>
+          <h2 style={{ textAlign: 'center', marginBottom: '1.5rem' }}>Réinitialiser le mot de passe</h2>
+          <form onSubmit={handleForgotPassword} className="login-form">
+            <div className="input-group">
+              <label>Email</label>
+              <input
+                type="email"
+                value={forgotEmail}
+                onChange={e => setForgotEmail(e.target.value)}
+                placeholder="votre@email.com"
+                autoFocus
+              />
+            </div>
+            {error && <div className="error-message">{error}</div>}
+            <button type="submit" className="connect-btn" disabled={isLoading}>
+              {isLoading ? <Loader2 className="animate-spin" size={18} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: '0.25rem' }} /> : null}
+              Envoyer le token
+            </button>
+            <button
+              type="button"
+              onClick={() => { setView('login'); setError(''); }}
+              style={{ background: 'none', border: 'none', color: '#6366f1', cursor: 'pointer', width: '100%', textAlign: 'center', marginTop: '0.5rem', fontSize: '0.875rem' }}
+            >
+              ← Retour à la connexion
+            </button>
+          </form>
+        </div>
+        <footer className="login-footer">
+          <span>{t('login.footer')}</span>
+          <a
+            href="https://github.com/rmyndharis/OpenWA"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="github-link"
+          >
+            <Github size={18} />
+          </a>
+        </footer>
+      </div>
+    );
+  }
+
+  if (view === 'reset') {
+    return (
+      <div className="login-container">
+        <div className="login-card">
+          <div className="login-logo">
+            <img src="/openwa_logo.webp" alt="OpenWA" className="logo-icon" />
+            <span className="version-info">
+              {t('login.version', {
+                version: __APP_VERSION__,
+                date: new Date(__BUILD_TIME__).toLocaleDateString(),
+              })}
+            </span>
+          </div>
+          <h2 style={{ textAlign: 'center', marginBottom: '1rem' }}>Nouveau mot de passe</h2>
+          {resetMessage && (
+            <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: '8px', padding: '0.75rem', marginBottom: '1rem', fontSize: '0.875rem', color: '#1D4ED8' }}>
+              {resetMessage}
+            </div>
+          )}
+          <form onSubmit={handleResetPassword} className="login-form">
+            <div className="input-group">
+              <label>Token de réinitialisation</label>
+              <input
+                type="text"
+                value={resetToken}
+                onChange={e => setResetToken(e.target.value)}
+                placeholder="abc123"
+                autoFocus
+              />
+            </div>
+            <div className="input-group">
+              <label>Nouveau mot de passe</label>
+              <input
+                type="password"
+                value={resetNewPassword}
+                onChange={e => setResetNewPassword(e.target.value)}
+                placeholder="••••••••"
+                minLength={8}
+              />
+            </div>
+            {error && <div className="error-message">{error}</div>}
+            <button type="submit" className="connect-btn" disabled={isLoading}>
+              {isLoading ? <Loader2 className="animate-spin" size={18} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: '0.25rem' }} /> : null}
+              Changer le mot de passe
+            </button>
+            <button
+              type="button"
+              onClick={() => { setView('login'); setError(''); }}
+              style={{ background: 'none', border: 'none', color: '#6366f1', cursor: 'pointer', width: '100%', textAlign: 'center', marginTop: '0.5rem', fontSize: '0.875rem' }}
+            >
+              ← Retour
+            </button>
+          </form>
+        </div>
+        <footer className="login-footer">
+          <span>{t('login.footer')}</span>
+          <a
+            href="https://github.com/rmyndharis/OpenWA"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="github-link"
+          >
+            <Github size={18} />
+          </a>
+        </footer>
+      </div>
+    );
+  }
 
   return (
     <div className="login-container">
@@ -173,6 +351,15 @@ export function Login({ onLogin, onLoginJwt }: LoginProps) {
             <button type="submit" className="connect-btn" disabled={isLoading}>
               {isLoading ? t('login.connecting') : t('login.connect')}
             </button>
+            <div style={{ textAlign: 'center', marginTop: '0.75rem' }}>
+              <button
+                type="button"
+                onClick={() => { setView('forgot'); setError(''); }}
+                style={{ background: 'none', border: 'none', color: '#6366f1', cursor: 'pointer', fontSize: '0.875rem', textDecoration: 'underline' }}
+              >
+                Mot de passe oublié ?
+              </button>
+            </div>
           </form>
         )}
 

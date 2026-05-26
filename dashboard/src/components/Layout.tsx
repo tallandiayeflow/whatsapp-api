@@ -21,6 +21,7 @@ import {
   Languages,
   UserCircle,
   BarChart2,
+  Radio,
 } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { type UserRole } from '../hooks/useRole';
@@ -42,6 +43,7 @@ const allNavItems = [
   { to: '/plugins', icon: Puzzle, key: 'plugins' as const, adminOnly: true },
   { to: '/logs', icon: FileText, key: 'logs' as const, adminOnly: false },
   { to: '/stats', icon: BarChart2, key: 'stats' as const, adminOnly: false },
+  { to: '/channels', icon: Radio, key: 'channels' as const, adminOnly: false },
 ];
 
 const themeIcons = { light: Sun, dark: Moon, system: Monitor };

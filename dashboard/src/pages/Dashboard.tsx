@@ -1,8 +1,10 @@
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useState, useEffect } from 'react';
 import { MessageSquare, Send, Webhook, Activity, ArrowUpRight, ArrowDownRight, Loader2 } from 'lucide-react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useSessionsQuery, useSessionStatsQuery, useWebhooksQuery, useStopSessionMutation } from '../hooks/queries';
+import { statsApi } from '../services/api';
 import { PageHeader } from '../components/PageHeader';
 import './Dashboard.css';
 
@@ -14,6 +16,12 @@ export function Dashboard() {
   const { data: stats } = useSessionStatsQuery();
   const { data: webhooks = [] } = useWebhooksQuery();
   const stopMutation = useStopSessionMutation();
+  const [overviewStats, setOverviewStats] = useState<{ messages: { today: { sent: number; received: number }; sent: number } } | null>(null);
+
+  useEffect(() => {
+    statsApi.getOverview().then(setOverviewStats).catch(() => {});
+  }, []);
+
   const loading = loadingSessions;
   const error = sessionsError instanceof Error
     ? sessionsError.message
@@ -38,9 +46,9 @@ export function Dashboard() {
       trend: `+${stats?.ready ?? 0}`,
       trendUp: true,
     },
-    { label: t('dashboard.stats.messagesToday'), value: '—', icon: Send, trend: '0', trendUp: null },
+    { label: t('dashboard.stats.messagesToday'), value: overviewStats ? overviewStats.messages.today.sent + overviewStats.messages.today.received : '—', icon: Send, trend: '0', trendUp: null },
     { label: t('dashboard.stats.webhooksConfigured'), value: webhookCount, icon: Webhook, trend: '0', trendUp: null },
-    { label: t('dashboard.stats.apiCalls'), value: '—', icon: Activity, trend: '0', trendUp: null },
+    { label: t('dashboard.stats.apiCalls'), value: overviewStats ? overviewStats.messages.sent : '—', icon: Activity, trend: '0', trendUp: null },
   ];
 
   const formatLastActive = (date?: string) => {

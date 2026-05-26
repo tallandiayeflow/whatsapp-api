@@ -508,3 +508,30 @@ export const pluginsApi = {
   getCurrentEngine: () => request<{ engineType: string }>('/infra/engines/current'),
   getMarketplace: () => request<MarketplacePlugin[]>('/plugins/marketplace'),
 };
+
+// =============================================================================
+// Channel API
+// =============================================================================
+
+export interface Channel {
+  id: string;
+  name: string;
+  description?: string;
+  subscriberCount?: number;
+  verified?: boolean;
+  pictureUrl?: string;
+}
+
+export const channelApi = {
+  list: (sessionId: string) => request<Channel[]>(`/sessions/${sessionId}/channels`),
+  get: (sessionId: string, channelId: string) => request<Channel>(`/sessions/${sessionId}/channels/${channelId}`),
+  subscribe: (sessionId: string, inviteCode: string) =>
+    request<{ success: boolean }>(`/sessions/${sessionId}/channels/subscribe`, {
+      method: 'POST',
+      body: JSON.stringify({ inviteCode }),
+    }),
+  unsubscribe: (sessionId: string, channelId: string) =>
+    request<{ success: boolean }>(`/sessions/${sessionId}/channels/${channelId}`, {
+      method: 'DELETE',
+    }),
+};

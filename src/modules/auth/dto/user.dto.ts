@@ -100,3 +100,21 @@ export class LoginResponseDto {
   @ApiProperty()
   email: string;
 }
+
+export class ForgotPasswordDto {
+  @ApiProperty({ example: 'admin@localhost' })
+  @IsEmail({ require_tld: false })
+  email: string;
+}
+
+export class ResetPasswordDto {
+  @ApiProperty({ example: 'a1b2c3' })
+  @IsString()
+  @IsNotEmpty()
+  token: string;
+
+  @ApiProperty({ minLength: 8 })
+  @IsString()
+  @MinLength(8)
+  newPassword: string;
+}
