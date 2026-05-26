@@ -103,7 +103,9 @@ describe('UserService', () => {
   describe('update', () => {
     it('should update email and role', async () => {
       const user = createMockUser();
-      (repository.findOne as jest.Mock).mockResolvedValue(user);
+      (repository.findOne as jest.Mock)
+        .mockResolvedValueOnce(user)   // first call: findOne(id)
+        .mockResolvedValueOnce(null);  // second call: duplicate email check
       (repository.save as jest.Mock).mockImplementation(u => Promise.resolve(u));
 
       const result = await service.update('user-uuid-1', { email: 'new@test.com', role: ApiKeyRole.VIEWER });
@@ -178,6 +180,30 @@ describe('UserService', () => {
 
       await expect(service.changePassword('user-uuid-1', 'wrongpass', 'newpassword99'))
         .rejects.toThrow(UnauthorizedException);
+    });
+  });
+
+  describe('onModuleInit', () => {
+    it('should create default admin user when no users exist', async () => {
+      (repository.count as jest.Mock).mockResolvedValue(0);
+      (repository.create as jest.Mock).mockReturnValue({ email: 'admin@localhost' });
+      (repository.save as jest.Mock).mockResolvedValue({});
+
+      await service.onModuleInit();
+
+      expect(repository.create).toHaveBeenCalledWith(
+        expect.objectContaining({ email: 'admin@localhost', role: ApiKeyRole.ADMIN }),
+      );
+      expect(repository.save).toHaveBeenCalled();
+    });
+
+    it('should not create user when users already exist', async () => {
+      (repository.count as jest.Mock).mockResolvedValue(1);
+
+      await service.onModuleInit();
+
+      expect(repository.create).not.toHaveBeenCalled();
+      expect(repository.save).not.toHaveBeenCalled();
     });
   });
 });

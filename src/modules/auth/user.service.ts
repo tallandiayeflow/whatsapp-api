@@ -89,6 +89,12 @@ export class UserService implements OnModuleInit {
 
   async update(id: string, dto: UpdateUserDto): Promise<User> {
     const user = await this.findOne(id);
+    if (dto.email !== undefined && dto.email !== user.email) {
+      const existing = await this.userRepository.findOne({ where: { email: dto.email } });
+      if (existing) {
+        throw new ConflictException(`User with email '${dto.email}' already exists`);
+      }
+    }
     if (dto.email !== undefined) user.email = dto.email;
     if (dto.role !== undefined) user.role = dto.role;
     if (dto.isActive !== undefined) user.isActive = dto.isActive;

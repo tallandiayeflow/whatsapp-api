@@ -10,13 +10,13 @@ export class User {
   @Column({ type: 'varchar', length: 255 })
   email: string;
 
-  @Column({ type: 'varchar', length: 100 })
+  @Column({ type: 'varchar', length: 60 })
   passwordHash: string;
 
   @Column({
     type: 'varchar',
     length: 20,
-    default: ApiKeyRole.ADMIN,
+    default: ApiKeyRole.OPERATOR,
   })
   role: ApiKeyRole;
 

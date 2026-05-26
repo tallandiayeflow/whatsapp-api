@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsBoolean, IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
 import { ApiKeyRole } from '../entities/api-key.entity';
 
 export class CreateUserDto {
@@ -31,6 +31,7 @@ export class UpdateUserDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @IsBoolean()
   isActive?: boolean;
 }
 
