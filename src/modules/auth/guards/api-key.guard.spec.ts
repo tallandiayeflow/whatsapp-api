@@ -3,6 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { ApiKeyGuard } from './api-key.guard';
 import { AuthService } from '../auth.service';
+import { UserService } from '../user.service';
 import { ApiKey, ApiKeyRole } from '../entities/api-key.entity';
 
 function createMockApiKey(role = ApiKeyRole.ADMIN): ApiKey {
@@ -37,6 +38,7 @@ describe('ApiKeyGuard', () => {
   let authService: jest.Mocked<Pick<AuthService, 'validateApiKey' | 'hasPermission'>>;
   let jwtService: jest.Mocked<Pick<JwtService, 'verifyAsync'>>;
   let reflector: jest.Mocked<Pick<Reflector, 'getAllAndOverride'>>;
+  let userService: jest.Mocked<Pick<UserService, 'findOne'>>;
 
   beforeEach(() => {
     authService = {
@@ -49,11 +51,15 @@ describe('ApiKeyGuard', () => {
     reflector = {
       getAllAndOverride: jest.fn().mockReturnValue(undefined),
     };
+    userService = {
+      findOne: jest.fn().mockResolvedValue({ isActive: true }),
+    };
 
     guard = new ApiKeyGuard(
       authService as unknown as AuthService,
       reflector as unknown as Reflector,
       jwtService as unknown as JwtService,
+      userService as unknown as UserService,
     );
   });
 
@@ -75,6 +81,31 @@ describe('ApiKeyGuard', () => {
       const ctx = makeContext({ 'x-api-key': 'bad-key' });
 
       await expect(guard.canActivate(ctx)).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should extract client IP from X-Forwarded-For header', async () => {
+      const apiKey = createMockApiKey();
+      authService.validateApiKey.mockResolvedValue(apiKey);
+      const ctx = makeContext({ 'x-api-key': 'valid-key', 'x-forwarded-for': '10.0.0.5, 192.168.1.1' });
+
+      await guard.canActivate(ctx);
+
+      expect(authService.validateApiKey).toHaveBeenCalledWith('valid-key', '10.0.0.5', undefined);
+    });
+
+    it('should pass session ID from route params to validateApiKey', async () => {
+      const apiKey = createMockApiKey();
+      authService.validateApiKey.mockResolvedValue(apiKey);
+      const req = { headers: { 'x-api-key': 'valid-key' }, params: { sessionId: 'session-abc' }, socket: {} };
+      const ctx = {
+        switchToHttp: () => ({ getRequest: () => req }),
+        getHandler: () => ({}),
+        getClass: () => ({}),
+      } as unknown as ExecutionContext;
+
+      await guard.canActivate(ctx);
+
+      expect(authService.validateApiKey).toHaveBeenCalledWith('valid-key', '', 'session-abc');
     });
   });
 
@@ -118,6 +149,15 @@ describe('ApiKeyGuard', () => {
       expect(result).toBe(true);
       expect(authService.validateApiKey).toHaveBeenCalledWith('raw-api-key-string', expect.any(String), undefined);
     });
+
+    it('should throw UnauthorizedException when JWT user is deactivated', async () => {
+      const payload = { sub: 'user-1', email: 'a@b.com', role: ApiKeyRole.ADMIN };
+      jwtService.verifyAsync.mockResolvedValue(payload);
+      userService.findOne.mockResolvedValue({ isActive: false } as any);
+      const ctx = makeContext({ authorization: 'Bearer valid.jwt.token' });
+
+      await expect(guard.canActivate(ctx)).rejects.toThrow(UnauthorizedException);
+    });
   });
 
   describe('public routes', () => {
@@ -137,6 +177,20 @@ describe('ApiKeyGuard', () => {
   describe('missing token', () => {
     it('should throw UnauthorizedException when no auth provided', async () => {
       const ctx = makeContext({});
+
+      await expect(guard.canActivate(ctx)).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
+  describe('role enforcement', () => {
+    it('should throw UnauthorizedException when role is insufficient', async () => {
+      const apiKey = createMockApiKey(ApiKeyRole.VIEWER);
+      authService.validateApiKey.mockResolvedValue(apiKey);
+      authService.hasPermission.mockReturnValue(false);
+      (reflector.getAllAndOverride as jest.Mock).mockImplementation((key) =>
+        key === 'requiredRole' ? ApiKeyRole.ADMIN : undefined,
+      );
+      const ctx = makeContext({ 'x-api-key': 'viewer-key' });
 
       await expect(guard.canActivate(ctx)).rejects.toThrow(UnauthorizedException);
     });

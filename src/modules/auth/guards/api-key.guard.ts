@@ -5,7 +5,7 @@ import { Request } from 'express';
 import { AuthService } from '../auth.service';
 import { ApiKey, ApiKeyRole } from '../entities/api-key.entity';
 import { REQUIRED_ROLE_KEY, PUBLIC_KEY } from '../decorators/auth.decorators';
-import { JwtPayload } from '../user.service';
+import { JwtPayload, UserService } from '../user.service';
 
 @Injectable()
 export class ApiKeyGuard implements CanActivate {
@@ -13,6 +13,7 @@ export class ApiKeyGuard implements CanActivate {
     private readonly authService: AuthService,
     private readonly reflector: Reflector,
     private readonly jwtService: JwtService,
+    private readonly userService: UserService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -46,6 +47,10 @@ export class ApiKeyGuard implements CanActivate {
 
       const jwtPayload = await this.tryVerifyJwt(token);
       if (jwtPayload) {
+        const user = await this.userService.findOne(jwtPayload.sub);
+        if (!user.isActive) {
+          throw new UnauthorizedException('User account is deactivated');
+        }
         const principal = this.buildPrincipalFromJwt(jwtPayload);
         this.checkRole(principal, requiredRole);
         request.apiKey = principal;
