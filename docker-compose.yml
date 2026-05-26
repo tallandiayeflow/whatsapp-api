@@ -97,6 +97,19 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 1536m   # Puppeteer/Chrome can be memory-hungry
+          cpus: '2.0'
+        reservations:
+          memory: 256m
+          cpus: '0.25'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
     labels:
       - 'com.openwa.service=api'
       - 'com.openwa.core=true'
@@ -113,6 +126,16 @@ services:
       - '80'
     depends_on:
       - openwa-api
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+          cpus: '0.25'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     labels:
       - 'com.openwa.service=dashboard'
       - 'com.openwa.core=true'

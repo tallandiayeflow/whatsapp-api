@@ -142,6 +142,14 @@ button:focus-visible {
   box-shadow: 0 0 0 4px var(--primary-light);
 }
 
+/* ==================== Global UI utilities ==================== */
+.input-error {
+  margin: 0.4rem 0 0;
+  font-size: 0.75rem;
+  color: var(--error);
+  font-weight: 500;
+}
+
 /* ==================== Global responsive ==================== */
 
 /* Prevent any single element from causing horizontal overflow */

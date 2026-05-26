@@ -50,8 +50,21 @@ export function Webhooks() {
   const [deleteTarget, setDeleteTarget] = useState<{ sessionId: string; id: string; url: string } | null>(null);
   const [editWebhook, setEditWebhook] = useState<Webhook | null>(null);
   const [newWebhook, setNewWebhook] = useState({ url: '', events: ['message.received'], sessionId: '' });
+  const [newWebhookErrors, setNewWebhookErrors] = useState<{ url?: string; sessionId?: string }>({});
+  const [editErrors, setEditErrors] = useState<{ url?: string }>({});
   const [testingId, setTestingId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const validateUrl = (url: string): string | undefined => {
+    if (!url.trim()) return 'URL is required';
+    try {
+      const parsed = new URL(url);
+      if (!['http:', 'https:'].includes(parsed.protocol)) return 'URL must start with http:// or https://';
+    } catch {
+      return 'Invalid URL format';
+    }
+    return undefined;
+  };
 
   const eventDescription = (name: string) => {
     if (name === '*') return t('webhooks.eventDescriptions.all');
@@ -66,7 +79,12 @@ export function Webhooks() {
   }, [toast]);
 
   const handleCreate = async () => {
-    if (!newWebhook.url || !newWebhook.sessionId) return;
+    const errors: { url?: string; sessionId?: string } = {};
+    const urlErr = validateUrl(newWebhook.url);
+    if (urlErr) errors.url = urlErr;
+    if (!newWebhook.sessionId) errors.sessionId = 'Please select a session';
+    if (Object.keys(errors).length > 0) { setNewWebhookErrors(errors); return; }
+    setNewWebhookErrors({});
     try {
       await createMutation.mutateAsync({
         sessionId: newWebhook.sessionId,
@@ -134,11 +152,15 @@ export function Webhooks() {
 
   const openEdit = (webhook: Webhook) => {
     setEditWebhook({ ...webhook });
+    setEditErrors({});
     setShowEditModal(true);
   };
 
   const handleEdit = async () => {
     if (!editWebhook) return;
+    const urlErr = validateUrl(editWebhook.url);
+    if (urlErr) { setEditErrors({ url: urlErr }); return; }
+    setEditErrors({});
     try {
       await updateMutation.mutateAsync({
         sessionId: editWebhook.sessionId,
@@ -224,7 +246,8 @@ export function Webhooks() {
               <label>{t('webhooks.session')}</label>
               <select
                 value={newWebhook.sessionId}
-                onChange={e => setNewWebhook({ ...newWebhook, sessionId: e.target.value })}
+                onChange={e => { setNewWebhook({ ...newWebhook, sessionId: e.target.value }); setNewWebhookErrors(p => ({ ...p, sessionId: undefined })); }}
+                style={newWebhookErrors.sessionId ? { borderColor: 'var(--error)' } : {}}
               >
                 <option value="">{t('webhooks.selectSession')}</option>
                 {sessions.map(s => (
@@ -233,13 +256,16 @@ export function Webhooks() {
                   </option>
                 ))}
               </select>
-              <label>{t('common.url')}</label>
+              {newWebhookErrors.sessionId && <p className="input-error">{newWebhookErrors.sessionId}</p>}
+              <label style={{ marginTop: '0.75rem' }}>{t('common.url')}</label>
               <input
                 type="url"
-                placeholder="https://..."
+                placeholder="https://your-server.com/webhook"
                 value={newWebhook.url}
-                onChange={e => setNewWebhook({ ...newWebhook, url: e.target.value })}
+                onChange={e => { setNewWebhook({ ...newWebhook, url: e.target.value }); setNewWebhookErrors(p => ({ ...p, url: undefined })); }}
+                style={newWebhookErrors.url ? { borderColor: 'var(--error)' } : {}}
               />
+              {newWebhookErrors.url && <p className="input-error">{newWebhookErrors.url}</p>}
               <label>{t('webhooks.events')}</label>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                 {availableEventNames.map(name => (
@@ -280,9 +306,11 @@ export function Webhooks() {
               <input
                 type="url"
                 value={editWebhook.url}
-                onChange={e => setEditWebhook({ ...editWebhook, url: e.target.value })}
+                onChange={e => { setEditWebhook({ ...editWebhook, url: e.target.value }); setEditErrors({}); }}
+                style={editErrors.url ? { borderColor: 'var(--error)' } : {}}
               />
-              <label>{t('webhooks.events')}</label>
+              {editErrors.url && <p className="input-error">{editErrors.url}</p>}
+              <label style={{ marginTop: '0.75rem' }}>{t('webhooks.events')}</label>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                 {availableEventNames.map(name => (
                   <button

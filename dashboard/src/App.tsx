@@ -79,6 +79,18 @@ function AppContent() {
     const apiKey = sessionStorage.getItem('openwa_api_key');
 
     if (jwt) {
+      // Quick client-side expiry check before hitting the network
+      try {
+        const payload = JSON.parse(atob(jwt.split('.')[1]));
+        if (payload.exp && payload.exp * 1000 < Date.now()) {
+          sessionStorage.removeItem('openwa_jwt');
+          setIsAuthenticated(false);
+          return;
+        }
+      } catch {
+        // malformed JWT — let the server decide
+      }
+
       fetch(`${API_BASE_URL}/auth/validate`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${jwt}` },

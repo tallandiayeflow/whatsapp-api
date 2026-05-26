@@ -165,7 +165,10 @@
       "preparing": "Preparing QR code...",
       "showQr": "Show QR",
       "loading": "Loading...",
-      "scanToConnect": "Scan QR code to connect"
+      "scanToConnect": "Scan QR code to connect",
+      "expired": "QR code expired",
+      "expiresIn": "Expires in {{seconds}}s",
+      "refresh": "Refresh QR"
     },
     "details": {
       "title": "Session Details",
@@ -184,6 +187,12 @@
       "reconnect": "Reconnect",
       "delete": "Delete",
       "proxy": "Proxy"
+    },
+    "start": {
+      "errorTitle": "Start Failed"
+    },
+    "stop": {
+      "errorTitle": "Stop Failed"
     },
     "toasts": {
       "readyTitle": "Session Ready",
@@ -489,8 +498,14 @@
       "total": "Total Sessions",
       "active": "Active (Ready)",
       "disconnected": "Disconnected",
-      "memory": "Memory Used"
+      "memory": "Memory Used",
+      "uptime": "Uptime",
+      "nodeVersion": "Node.js Version",
+      "environment": "Environment",
+      "queueStatus": "Queue Status"
     },
+    "queueEnabled": "Enabled",
+    "queueDisabled": "Disabled",
     "sessionsTable": "Sessions Overview",
     "columns": {
       "name": "Name",
