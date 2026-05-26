@@ -103,6 +103,7 @@ export class AuthService implements OnModuleInit {
       role: dto.role || ApiKeyRole.OPERATOR,
       allowedIps: dto.allowedIps || null,
       allowedSessions: dto.allowedSessions || null,
+      defaultSessionId: dto.defaultSessionId || null,
       expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : null,
     });
 
@@ -137,6 +138,7 @@ export class AuthService implements OnModuleInit {
     if (dto.role) apiKey.role = dto.role;
     if (dto.allowedIps !== undefined) apiKey.allowedIps = dto.allowedIps;
     if (dto.allowedSessions !== undefined) apiKey.allowedSessions = dto.allowedSessions;
+    if (dto.defaultSessionId !== undefined) apiKey.defaultSessionId = dto.defaultSessionId || null;
     if (dto.expiresAt !== undefined) apiKey.expiresAt = dto.expiresAt ? new Date(dto.expiresAt) : null;
 
     return this.apiKeyRepository.save(apiKey);

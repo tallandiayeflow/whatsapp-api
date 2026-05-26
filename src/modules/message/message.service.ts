@@ -2,7 +2,17 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SessionService } from '../session/session.service';
-import { SendTextMessageDto, SendMediaMessageDto, MessageResponseDto } from './dto';
+import {
+  SendTextMessageDto,
+  SendMediaMessageDto,
+  MessageResponseDto,
+  SendPollMessageDto,
+  EditTextMessageDto,
+  MarkChatReadDto,
+  SetPresenceDto,
+  SendViewOnceMediaDto,
+  SendTextWithMentionsDto,
+} from './dto';
 import { MediaInput } from '../../engine/interfaces/whatsapp-engine.interface';
 import { Message, MessageDirection, MessageStatus } from './entities/message.entity';
 import { HookManager } from '../../core/hooks';
@@ -464,6 +474,146 @@ export class MessageService {
   ): Promise<void> {
     const engine = this.getEngine(sessionId);
     await engine.deleteMessage(dto.chatId, dto.messageId, dto.forEveryone ?? true);
+  }
+
+  // ========== New Message Methods ==========
+
+  async sendPoll(sessionId: string, dto: SendPollMessageDto): Promise<MessageResponseDto> {
+    const engine = this.getEngine(sessionId);
+
+    const message = await this.saveOutgoingMessage(sessionId, {
+      chatId: dto.chatId,
+      body: dto.question,
+      type: 'poll',
+    });
+
+    try {
+      const result = await engine.sendPollMessage(dto.chatId, dto.question, dto.options, dto.allowMultipleAnswers);
+
+      message.waMessageId = result.messageId;
+      message.status = MessageStatus.SENT;
+      message.timestamp = result.timestamp;
+      await this.messageRepository.save(message);
+
+      await this.hookManager.execute(
+        'message:sent',
+        { sessionId, result, input: dto },
+        { sessionId, source: 'MessageService' },
+      );
+
+      return {
+        messageId: result.messageId,
+        timestamp: result.timestamp,
+      };
+    } catch (error) {
+      message.status = MessageStatus.FAILED;
+      await this.messageRepository.save(message);
+
+      await this.hookManager.execute(
+        'message:failed',
+        { sessionId, error: error instanceof Error ? error.message : String(error), input: dto },
+        { sessionId, source: 'MessageService' },
+      );
+
+      throw error;
+    }
+  }
+
+  async editMessage(sessionId: string, dto: EditTextMessageDto): Promise<void> {
+    const engine = this.getEngine(sessionId);
+    await engine.editTextMessage(dto.messageId, dto.newText);
+  }
+
+  async markChatRead(sessionId: string, dto: MarkChatReadDto): Promise<void> {
+    const engine = this.getEngine(sessionId);
+    await engine.markChatRead(dto.chatId);
+  }
+
+  async setPresence(sessionId: string, dto: SetPresenceDto): Promise<void> {
+    const engine = this.getEngine(sessionId);
+    await engine.setPresence(dto.chatId, dto.presence);
+  }
+
+  async sendViewOnce(sessionId: string, dto: SendViewOnceMediaDto): Promise<MessageResponseDto> {
+    const engine = this.getEngine(sessionId);
+
+    const message = await this.saveOutgoingMessage(sessionId, {
+      chatId: dto.chatId,
+      body: `[View Once ${dto.mediaType}]`,
+      type: dto.mediaType,
+    });
+
+    try {
+      const result = await engine.sendViewOnceMedia(dto.chatId, dto.url, dto.mediaType);
+
+      message.waMessageId = result.messageId;
+      message.status = MessageStatus.SENT;
+      message.timestamp = result.timestamp;
+      await this.messageRepository.save(message);
+
+      await this.hookManager.execute(
+        'message:sent',
+        { sessionId, result, input: dto },
+        { sessionId, source: 'MessageService' },
+      );
+
+      return {
+        messageId: result.messageId,
+        timestamp: result.timestamp,
+      };
+    } catch (error) {
+      message.status = MessageStatus.FAILED;
+      await this.messageRepository.save(message);
+
+      await this.hookManager.execute(
+        'message:failed',
+        { sessionId, error: error instanceof Error ? error.message : String(error), input: dto },
+        { sessionId, source: 'MessageService' },
+      );
+
+      throw error;
+    }
+  }
+
+  async sendWithMentions(sessionId: string, dto: SendTextWithMentionsDto): Promise<MessageResponseDto> {
+    const engine = this.getEngine(sessionId);
+
+    const message = await this.saveOutgoingMessage(sessionId, {
+      chatId: dto.chatId,
+      body: dto.text,
+      type: 'text',
+    });
+
+    try {
+      const result = await engine.sendTextWithMentions(dto.chatId, dto.text, dto.mentionedIds);
+
+      message.waMessageId = result.messageId;
+      message.status = MessageStatus.SENT;
+      message.timestamp = result.timestamp;
+      await this.messageRepository.save(message);
+
+      await this.hookManager.execute(
+        'message:sent',
+        { sessionId, result, input: dto },
+        { sessionId, source: 'MessageService' },
+      );
+
+      return {
+        messageId: result.messageId,
+        timestamp: result.timestamp,
+      };
+    } catch (error) {
+      message.status = MessageStatus.FAILED;
+      await this.messageRepository.save(message);
+
+      await this.hookManager.execute(
+        'message:failed',
+        { sessionId, error: error instanceof Error ? error.message : String(error), input: dto },
+        { sessionId, source: 'MessageService' },
+      );
+
+      throw error;
+    }
   }
 
   private getEngine(sessionId: string) {

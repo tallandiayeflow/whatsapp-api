@@ -1,7 +1,7 @@
-import { Controller, Get, Post, Delete, Param, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { SessionService } from './session.service';
-import { CreateSessionDto, SessionResponseDto, QRCodeResponseDto } from './dto';
+import { CreateSessionDto, SessionResponseDto, QRCodeResponseDto, UpdateSessionWebhookDto } from './dto';
 import { Session } from './entities/session.entity';
 import { AuditService } from '../audit/audit.service';
 import { AuditAction } from '../audit/entities/audit-log.entity';
@@ -183,5 +183,22 @@ export class SessionController {
     memoryUsage: { heapUsed: number; heapTotal: number; rss: number };
   }> {
     return this.sessionService.getStats();
+  }
+
+  @Patch(':id/webhook')
+  @RequireRole(ApiKeyRole.ADMIN)
+  @ApiOperation({ summary: 'Update per-session webhook configuration' })
+  @ApiParam({ name: 'id', description: 'Session ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Webhook configuration updated',
+    type: SessionResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Session not found' })
+  async updateWebhookConfig(
+    @Param('id') id: string,
+    @Body() dto: UpdateSessionWebhookDto,
+  ): Promise<Session> {
+    return this.sessionService.updateWebhookConfig(id, dto);
   }
 }

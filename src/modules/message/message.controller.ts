@@ -2,7 +2,17 @@ import { Controller, Post, Get, Param, Body, Query, HttpCode, HttpStatus } from 
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { MessageService } from './message.service';
 import { BulkMessageService } from './bulk-message.service';
-import { SendTextMessageDto, SendMediaMessageDto, MessageResponseDto } from './dto';
+import {
+  SendTextMessageDto,
+  SendMediaMessageDto,
+  MessageResponseDto,
+  SendPollMessageDto,
+  EditTextMessageDto,
+  MarkChatReadDto,
+  SetPresenceDto,
+  SendViewOnceMediaDto,
+  SendTextWithMentionsDto,
+} from './dto';
 import { SendBulkMessageDto, BulkMessageResponseDto } from './dto/bulk-message.dto';
 import { RequireRole } from '../auth/decorators/auth.decorators';
 import { ApiKeyRole } from '../auth/entities/api-key.entity';
@@ -277,6 +287,89 @@ export class MessageController {
   ): Promise<{ success: boolean }> {
     await this.messageService.deleteMessage(sessionId, dto);
     return { success: true };
+  }
+
+  // ========== New Message Endpoints ==========
+
+  @Post('send-poll')
+  @RequireRole(ApiKeyRole.OPERATOR)
+  @ApiOperation({ summary: 'Send a poll message' })
+  @ApiParam({ name: 'sessionId', description: 'Session ID' })
+  @ApiResponse({ status: 201, description: 'Poll sent', type: MessageResponseDto })
+  @ApiResponse({ status: 400, description: 'Session not active or invalid request' })
+  async sendPoll(
+    @Param('sessionId') sessionId: string,
+    @Body() dto: SendPollMessageDto,
+  ): Promise<MessageResponseDto> {
+    return this.messageService.sendPoll(sessionId, dto);
+  }
+
+  @Post('edit-message')
+  @RequireRole(ApiKeyRole.OPERATOR)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Edit a sent text message' })
+  @ApiParam({ name: 'sessionId', description: 'Session ID' })
+  @ApiResponse({ status: 204, description: 'Message edited' })
+  @ApiResponse({ status: 400, description: 'Session not active or message not found' })
+  async editMessage(
+    @Param('sessionId') sessionId: string,
+    @Body() dto: EditTextMessageDto,
+  ): Promise<void> {
+    return this.messageService.editMessage(sessionId, dto);
+  }
+
+  @Post('mark-read')
+  @RequireRole(ApiKeyRole.OPERATOR)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Mark a chat as read' })
+  @ApiParam({ name: 'sessionId', description: 'Session ID' })
+  @ApiResponse({ status: 204, description: 'Chat marked as read' })
+  @ApiResponse({ status: 400, description: 'Session not active or chat not found' })
+  async markRead(
+    @Param('sessionId') sessionId: string,
+    @Body() dto: MarkChatReadDto,
+  ): Promise<void> {
+    return this.messageService.markChatRead(sessionId, dto);
+  }
+
+  @Post('set-presence')
+  @RequireRole(ApiKeyRole.OPERATOR)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Set typing/recording/paused presence in a chat' })
+  @ApiParam({ name: 'sessionId', description: 'Session ID' })
+  @ApiResponse({ status: 204, description: 'Presence set' })
+  @ApiResponse({ status: 400, description: 'Session not active or invalid request' })
+  async setPresence(
+    @Param('sessionId') sessionId: string,
+    @Body() dto: SetPresenceDto,
+  ): Promise<void> {
+    return this.messageService.setPresence(sessionId, dto);
+  }
+
+  @Post('send-view-once')
+  @RequireRole(ApiKeyRole.OPERATOR)
+  @ApiOperation({ summary: 'Send a view-once image or video' })
+  @ApiParam({ name: 'sessionId', description: 'Session ID' })
+  @ApiResponse({ status: 201, description: 'View-once media sent', type: MessageResponseDto })
+  @ApiResponse({ status: 400, description: 'Session not active or invalid request' })
+  async sendViewOnce(
+    @Param('sessionId') sessionId: string,
+    @Body() dto: SendViewOnceMediaDto,
+  ): Promise<MessageResponseDto> {
+    return this.messageService.sendViewOnce(sessionId, dto);
+  }
+
+  @Post('send-with-mentions')
+  @RequireRole(ApiKeyRole.OPERATOR)
+  @ApiOperation({ summary: 'Send a text message mentioning specific participants' })
+  @ApiParam({ name: 'sessionId', description: 'Session ID' })
+  @ApiResponse({ status: 201, description: 'Message with mentions sent', type: MessageResponseDto })
+  @ApiResponse({ status: 400, description: 'Session not active or invalid request' })
+  async sendWithMentions(
+    @Param('sessionId') sessionId: string,
+    @Body() dto: SendTextWithMentionsDto,
+  ): Promise<MessageResponseDto> {
+    return this.messageService.sendWithMentions(sessionId, dto);
   }
 
   // ========== Bulk Messaging ==========

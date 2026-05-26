@@ -42,9 +42,10 @@ export interface ApiKey {
   id: string;
   name: string;
   keyPrefix: string;
-  role: 'admin' | 'user' | 'readonly';
+  role: 'admin' | 'operator' | 'viewer';
   allowedIps?: string[];
   allowedSessions?: string[];
+  defaultSessionId?: string;
   isActive: boolean;
   expiresAt?: string;
   lastUsedAt?: string;
@@ -268,13 +269,14 @@ export const apiKeyApi = {
     role: string;
     allowedIps?: string[];
     allowedSessions?: string[];
+    defaultSessionId?: string;
     expiresAt?: string;
   }) =>
     request<ApiKey>('/auth/api-keys', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
-  update: (id: string, data: Partial<ApiKey>) =>
+  update: (id: string, data: { name?: string; role?: string; defaultSessionId?: string | null; allowedSessions?: string[]; expiresAt?: string }) =>
     request<ApiKey>(`/auth/api-keys/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),

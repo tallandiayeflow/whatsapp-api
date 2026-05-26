@@ -201,6 +201,9 @@ export interface EngineEventCallbacks {
   onMessageAck?: (messageId: string, ack: number) => void;
   onDisconnected?: (reason: string) => void;
   onStateChanged?: (state: EngineStatus) => void;
+  onMessageDeleted?: (messageId: string, chatId: string, deletedForEveryone: boolean) => void;
+  onPresenceUpdate?: (chatId: string, userId: string, presence: string) => void;
+  onCallReceived?: (callId: string, from: string, isVideo: boolean, isGroup: boolean) => void;
 }
 
 export interface IWhatsAppEngine {
@@ -293,4 +296,31 @@ export interface IWhatsAppEngine {
   getProduct(productId: string): Promise<Product | null>;
   sendProduct(chatId: string, productId: string, body?: string): Promise<MessageResult>;
   sendCatalog(chatId: string, body?: string): Promise<MessageResult>;
+
+  // Polls
+  sendPollMessage(chatId: string, question: string, options: string[], allowMultipleAnswers?: boolean): Promise<{ messageId: string; timestamp: number }>;
+
+  // Edit
+  editTextMessage(messageId: string, newText: string): Promise<void>;
+
+  // Mark read
+  markChatRead(chatId: string): Promise<void>;
+
+  // Presence
+  setPresence(chatId: string, presence: 'typing' | 'recording' | 'paused'): Promise<void>;
+
+  // View once
+  sendViewOnceMedia(chatId: string, mediaUrl: string, mediaType: 'image' | 'video'): Promise<{ messageId: string; timestamp: number }>;
+
+  // Groups
+  joinGroupByInviteCode(inviteCode: string): Promise<{ id: string; name: string }>;
+  setGroupAnnounce(groupId: string, announce: boolean): Promise<void>;
+  setGroupRestrict(groupId: string, restrict: boolean): Promise<void>;
+  setGroupPicture(groupId: string, imageUrl: string): Promise<void>;
+
+  // Mentions
+  sendTextWithMentions(chatId: string, text: string, mentionedIds: string[]): Promise<{ messageId: string; timestamp: number }>;
+
+  // Contacts
+  resolveNumber(phoneNumber: string): Promise<{ id: string; user: string; server: string; isRegistered: boolean } | null>;
 }

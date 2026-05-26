@@ -90,6 +90,7 @@ export class ApiKeyGuard implements CanActivate {
       keyPrefix: '',
       allowedIps: null,
       allowedSessions: null,
+      defaultSessionId: null,
       expiresAt: null,
       lastUsedAt: null,
       usageCount: 0,

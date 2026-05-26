@@ -1,6 +1,8 @@
 import { Controller, Get, Post, Put, Delete, Param, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
 import { SessionService } from '../session/session.service';
+import { RequireRole } from '../auth/decorators/auth.decorators';
+import { ApiKeyRole } from '../auth/entities/api-key.entity';
 
 // DTOs
 class CreateGroupDto {
@@ -18,6 +20,22 @@ class GroupSubjectDto {
 
 class GroupDescriptionDto {
   description: string;
+}
+
+class JoinGroupDto {
+  inviteCode: string;
+}
+
+class GroupAnnounceDto {
+  announce: boolean;
+}
+
+class GroupRestrictDto {
+  restrict: boolean;
+}
+
+class GroupPictureDto {
+  url: string;
 }
 
 @ApiTags('groups')
@@ -200,6 +218,74 @@ export class GroupController {
       inviteLink: `https://chat.whatsapp.com/${newCode}`,
       message: 'Invite code revoked and new one generated',
     };
+  }
+
+  // ========== New Group Endpoints ==========
+
+  @Post('join')
+  @RequireRole(ApiKeyRole.OPERATOR)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Join a group by invite code' })
+  @ApiParam({ name: 'sessionId', description: 'Session ID' })
+  @ApiBody({ type: JoinGroupDto })
+  @ApiResponse({ status: 200, description: 'Joined group info' })
+  async joinGroup(@Param('sessionId') sessionId: string, @Body() dto: JoinGroupDto) {
+    const engine = this.getEngine(sessionId);
+    return engine.joinGroupByInviteCode(dto.inviteCode);
+  }
+
+  @Post(':groupId/announce')
+  @RequireRole(ApiKeyRole.OPERATOR)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Set group announce mode' })
+  @ApiParam({ name: 'sessionId', description: 'Session ID' })
+  @ApiParam({ name: 'groupId', description: 'Group ID' })
+  @ApiBody({ type: GroupAnnounceDto })
+  @ApiResponse({ status: 200, description: 'Announce mode updated' })
+  async setAnnounce(
+    @Param('sessionId') sessionId: string,
+    @Param('groupId') groupId: string,
+    @Body() dto: GroupAnnounceDto,
+  ) {
+    const engine = this.getEngine(sessionId);
+    await engine.setGroupAnnounce(groupId, dto.announce);
+    return { success: true };
+  }
+
+  @Post(':groupId/restrict')
+  @RequireRole(ApiKeyRole.OPERATOR)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Set group restrict mode' })
+  @ApiParam({ name: 'sessionId', description: 'Session ID' })
+  @ApiParam({ name: 'groupId', description: 'Group ID' })
+  @ApiBody({ type: GroupRestrictDto })
+  @ApiResponse({ status: 200, description: 'Restrict mode updated' })
+  async setRestrict(
+    @Param('sessionId') sessionId: string,
+    @Param('groupId') groupId: string,
+    @Body() dto: GroupRestrictDto,
+  ) {
+    const engine = this.getEngine(sessionId);
+    await engine.setGroupRestrict(groupId, dto.restrict);
+    return { success: true };
+  }
+
+  @Put(':groupId/picture')
+  @RequireRole(ApiKeyRole.OPERATOR)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Set group profile picture' })
+  @ApiParam({ name: 'sessionId', description: 'Session ID' })
+  @ApiParam({ name: 'groupId', description: 'Group ID' })
+  @ApiBody({ type: GroupPictureDto })
+  @ApiResponse({ status: 200, description: 'Group picture updated' })
+  async setPicture(
+    @Param('sessionId') sessionId: string,
+    @Param('groupId') groupId: string,
+    @Body() dto: GroupPictureDto,
+  ) {
+    const engine = this.getEngine(sessionId);
+    await engine.setGroupPicture(groupId, dto.url);
+    return { success: true };
   }
 
   private getEngine(sessionId: string) {

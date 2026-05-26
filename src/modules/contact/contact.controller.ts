@@ -1,6 +1,8 @@
 import { Controller, Get, Post, Delete, Param, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { SessionService } from '../session/session.service';
+import { RequireRole } from '../auth/decorators/auth.decorators';
+import { ApiKeyRole } from '../auth/entities/api-key.entity';
 
 @ApiTags('contacts')
 @Controller('sessions/:sessionId/contacts')
@@ -118,5 +120,25 @@ export class ContactController {
     }
     await engine.unblockContact(contactId);
     return { success: true, message: 'Contact unblocked' };
+  }
+
+  // ========== New Contact Endpoints ==========
+
+  @Get('resolve/:number')
+  @RequireRole(ApiKeyRole.VIEWER)
+  @ApiOperation({ summary: 'Resolve a phone number to WhatsApp ID' })
+  @ApiParam({ name: 'sessionId', description: 'Session ID' })
+  @ApiParam({ name: 'number', description: 'Phone number to resolve (e.g., 628123456789)' })
+  @ApiResponse({ status: 200, description: 'Resolved number info or { isRegistered: false }' })
+  async resolveNumber(@Param('sessionId') sessionId: string, @Param('number') number: string) {
+    const engine = this.sessionService.getEngine(sessionId);
+    if (!engine) {
+      throw new Error('Session is not started');
+    }
+    const result = await engine.resolveNumber(number);
+    if (!result) {
+      return { isRegistered: false };
+    }
+    return result;
   }
 }

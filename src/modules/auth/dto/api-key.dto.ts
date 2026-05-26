@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsEnum, IsArray, IsDateString, MinLength, MaxLength } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsArray, IsDateString, IsUUID, MinLength, MaxLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ApiKeyRole } from '../entities/api-key.entity';
 
@@ -40,6 +40,14 @@ export class CreateApiKeyDto {
   allowedSessions?: string[];
 
   @ApiPropertyOptional({
+    description: 'Default WhatsApp session linked to this key (used by /api/messages/* routes)',
+    example: 'uuid-of-session',
+  })
+  @IsOptional()
+  @IsUUID()
+  defaultSessionId?: string;
+
+  @ApiPropertyOptional({
     description: 'Expiration date (ISO 8601)',
     example: '2027-12-31T23:59:59Z',
   })
@@ -68,6 +76,11 @@ export class ApiKeyResponseDto {
 
   @ApiPropertyOptional()
   allowedSessions?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Default session linked to this key',
+  })
+  defaultSessionId?: string;
 
   @ApiProperty()
   isActive: boolean;
@@ -117,6 +130,11 @@ export class UpdateApiKeyDto {
   @IsArray()
   @IsString({ each: true })
   allowedSessions?: string[];
+
+  @ApiPropertyOptional({ description: 'Default WhatsApp session for this key' })
+  @IsOptional()
+  @IsUUID()
+  defaultSessionId?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

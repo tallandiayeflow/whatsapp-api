@@ -9,7 +9,7 @@ import {
 import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import { Repository, In, DataSource } from 'typeorm';
 import { Session, SessionStatus } from './entities/session.entity';
-import { CreateSessionDto } from './dto';
+import { CreateSessionDto, UpdateSessionWebhookDto } from './dto';
 import { EngineFactory } from '../../engine/engine.factory';
 import { IWhatsAppEngine, EngineStatus } from '../../engine/interfaces/whatsapp-engine.interface';
 import { createLogger } from '../../common/services/logger.service';
@@ -407,6 +407,35 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
           void this.updateStatus(id, newStatus);
         }
       },
+      onMessageAck: (messageId: string, ack: number): void => {
+        void this.webhookService.dispatch(id, 'message.ack', {
+          messageId,
+          ack,
+          // ack values: 0=pending, 1=sent, 2=delivered, 3=read, 4=played
+        });
+      },
+      onMessageDeleted: (messageId: string, chatId: string, deletedForEveryone: boolean): void => {
+        void this.webhookService.dispatch(id, 'message.deleted', {
+          messageId,
+          chatId,
+          deletedForEveryone,
+        });
+      },
+      onPresenceUpdate: (chatId: string, userId: string, presence: string): void => {
+        void this.webhookService.dispatch(id, 'presence.updated', {
+          chatId,
+          userId,
+          presence,
+        });
+      },
+      onCallReceived: (callId: string, from: string, isVideo: boolean, isGroup: boolean): void => {
+        void this.webhookService.dispatch(id, 'call.received', {
+          callId,
+          from,
+          isVideo,
+          isGroup,
+        });
+      },
     });
 
     await this.updateStatus(id, SessionStatus.INITIALIZING);
@@ -599,5 +628,16 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
    */
   isActive(id: string): boolean {
     return this.engines.has(id);
+  }
+
+  /**
+   * Update per-session webhook configuration
+   */
+  async updateWebhookConfig(id: string, dto: UpdateSessionWebhookDto): Promise<Session> {
+    const session = await this.findOne(id);
+    if (dto.webhookUrl !== undefined) session.webhookUrl = dto.webhookUrl ?? null;
+    if (dto.webhookEvents !== undefined) session.webhookEvents = dto.webhookEvents ?? null;
+    if (dto.webhookSecret !== undefined) session.webhookSecret = dto.webhookSecret ?? null;
+    return this.sessionRepository.save(session);
   }
 }

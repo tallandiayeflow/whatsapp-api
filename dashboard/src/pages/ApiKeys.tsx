@@ -7,10 +7,12 @@ import {
   createColumnHelper,
   type VisibilityState,
 } from '@tanstack/react-table';
-import { Plus, Copy, RefreshCw, Trash2, Eye, EyeOff, Loader2, X, Check, KeyRound, AlertTriangle } from 'lucide-react';
+import { Plus, Copy, RefreshCw, Trash2, Eye, EyeOff, Loader2, X, Check, KeyRound, AlertTriangle, Link } from 'lucide-react';
 import type { ApiKey } from '../services/api';
+import { sessionApi, apiKeyApi } from '../services/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useApiKeysQuery, useCreateApiKeyMutation, useDeleteApiKeyMutation, useRevokeApiKeyMutation } from '../hooks/queries';
+import { useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '../components/PageHeader';
 import './ApiKeys.css';
 
@@ -35,10 +37,13 @@ export function ApiKeys() {
   const createMutation = useCreateApiKeyMutation();
   const deleteMutation = useDeleteApiKeyMutation();
   const revokeMutation = useRevokeApiKeyMutation();
+  const queryClient = useQueryClient();
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set());
   const [showModal, setShowModal] = useState(false);
-  const [newKey, setNewKey] = useState({ name: '', role: 'operator' });
+  const [newKey, setNewKey] = useState({ name: '', role: 'operator', defaultSessionId: '' });
   const [createdKey, setCreatedKey] = useState<string | null>(null);
+  const [sessions, setSessions] = useState<{ id: string; name: string; status: string }[]>([]);
+  const [linkTarget, setLinkTarget] = useState<{ key: ApiKey; sessionId: string } | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<{ type: 'delete' | 'revoke'; id: string; name: string } | null>(
     null,
@@ -53,14 +58,35 @@ export function ApiKeys() {
     setColumnVisibility({ key: !isSmall, lastUsed: !isMobile });
   }, [isMobile, isSmall]);
 
+  useEffect(() => {
+    sessionApi.list().then(setSessions).catch(() => {});
+  }, []);
+
   const handleCreate = async () => {
     if (!newKey.name) return;
     try {
-      const created = await createMutation.mutateAsync({ name: newKey.name, role: newKey.role });
+      const created = await createMutation.mutateAsync({
+        name: newKey.name,
+        role: newKey.role,
+        ...(newKey.defaultSessionId ? { defaultSessionId: newKey.defaultSessionId } : {}),
+      });
       setCreatedKey(created.apiKey || null);
-      setNewKey({ name: '', role: 'operator' });
+      setNewKey({ name: '', role: 'operator', defaultSessionId: '' });
     } catch (err) {
       console.error('Failed to create:', err);
+    }
+  };
+
+  const handleLinkSession = async () => {
+    if (!linkTarget) return;
+    try {
+      await apiKeyApi.update(linkTarget.key.id, {
+        defaultSessionId: linkTarget.sessionId || null,
+      });
+      void queryClient.invalidateQueries({ queryKey: ['apiKeys'] });
+      setLinkTarget(null);
+    } catch (err) {
+      console.error('Failed to link session:', err);
     }
   };
 
@@ -144,6 +170,28 @@ export function ApiKeys() {
           </span>
         ),
       }),
+      columnHelper.accessor('defaultSessionId', {
+        id: 'session',
+        header: () => 'Session liée',
+        cell: info => {
+          const apiKey = info.row.original;
+          const linked = sessions.find(s => s.id === apiKey.defaultSessionId);
+          return (
+            <span
+              className="session-link-cell"
+              title="Cliquer pour lier une session"
+              style={{ cursor: 'pointer' }}
+              onClick={() => setLinkTarget({ key: apiKey, sessionId: apiKey.defaultSessionId ?? '' })}
+            >
+              {linked ? (
+                <span className="session-badge ready">{linked.name}</span>
+              ) : (
+                <span className="session-badge none">— lier</span>
+              )}
+            </span>
+          );
+        },
+      }),
       columnHelper.display({
         id: 'actions',
         header: () => t('apiKeys.columns.actions'),
@@ -157,6 +205,13 @@ export function ApiKeys() {
                 title="Copy key prefix (full key only shown at creation)"
               >
                 {copied === apiKey.id ? <Check size={16} /> : <Copy size={16} />}
+              </button>
+              <button
+                className="icon-btn"
+                onClick={() => setLinkTarget({ key: apiKey, sessionId: apiKey.defaultSessionId ?? '' })}
+                title="Lier une session WhatsApp"
+              >
+                <Link size={16} />
               </button>
               {apiKey.isActive && (
                 <button
@@ -273,6 +328,21 @@ export function ApiKeys() {
                       </option>
                     ))}
                   </select>
+                  <label style={{ marginTop: '0.75rem' }}>Session WhatsApp liée <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optionnel)</span></label>
+                  <select
+                    value={newKey.defaultSessionId}
+                    onChange={e => setNewKey({ ...newKey, defaultSessionId: e.target.value })}
+                  >
+                    <option value="">— Auto-sélection</option>
+                    {sessions.map(s => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} ({s.status})
+                      </option>
+                    ))}
+                  </select>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>
+                    Sans session liée : la clé utilisera automatiquement la seule session active.
+                  </p>
                 </>
               )}
             </div>
@@ -380,6 +450,48 @@ export function ApiKeys() {
                 {confirmAction.type === 'delete'
                   ? t('apiKeys.confirm.delete')
                   : t('apiKeys.confirm.revoke')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {linkTarget && (
+        <div className="modal-overlay" onClick={() => setLinkTarget(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Lier une session WhatsApp</h2>
+              <button className="btn-icon" onClick={() => setLinkTarget(null)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <p style={{ marginBottom: '0.75rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                Clé : <strong>{linkTarget.key.name}</strong>
+              </p>
+              <label>Session WhatsApp</label>
+              <select
+                value={linkTarget.sessionId}
+                onChange={e => setLinkTarget({ ...linkTarget, sessionId: e.target.value })}
+              >
+                <option value="">— Aucune (auto-sélection)</option>
+                {sessions.map(s => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({s.status})
+                  </option>
+                ))}
+              </select>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+                Une fois liée, cette clé peut envoyer des messages via{' '}
+                <code>POST /api/messages/send-text</code> sans préciser de sessionId.
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={() => setLinkTarget(null)}>
+                Annuler
+              </button>
+              <button className="btn-primary" onClick={() => void handleLinkSession()}>
+                Enregistrer
               </button>
             </div>
           </div>

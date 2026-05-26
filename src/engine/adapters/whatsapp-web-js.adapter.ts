@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { Client, LocalAuth, MessageMedia } from 'whatsapp-web.js';
+import { Client, LocalAuth, MessageMedia, Poll } from 'whatsapp-web.js';
 import * as qrcode from 'qrcode';
 import * as path from 'path';
 import {
@@ -34,6 +34,7 @@ import {
   BusinessClient,
   WwjsChannelData,
   GroupCreateResult,
+  WwjsCall,
 } from '../types/whatsapp-web-js.types';
 
 export interface WhatsAppWebJsConfig {
@@ -192,6 +193,24 @@ export class WhatsAppWebJsAdapter extends EventEmitter implements IWhatsAppEngin
 
     this.client.on('message_ack', (msg, ack) => {
       this.callbacks.onMessageAck?.(msg.id._serialized, ack);
+    });
+
+    this.client.on('message_revoke_everyone', (after, _before) => {
+      if (this.callbacks.onMessageDeleted) {
+        const afterMsg = after as { id: { _serialized: string }; from?: string; to?: string };
+        this.callbacks.onMessageDeleted(
+          afterMsg.id._serialized,
+          afterMsg.from || afterMsg.to || '',
+          true,
+        );
+      }
+    });
+
+    this.client.on('incoming_call', (call: unknown) => {
+      if (this.callbacks.onCallReceived) {
+        const c = call as WwjsCall;
+        this.callbacks.onCallReceived(c.id, c.from, c.isVideo, c.isGroup);
+      }
     });
 
     this.client.on('disconnected', reason => {
@@ -914,6 +933,101 @@ export class WhatsAppWebJsAdapter extends EventEmitter implements IWhatsAppEngin
   }
 
   /* eslint-enable @typescript-eslint/require-await, @typescript-eslint/no-unused-vars */
+
+  // ========== Phase 1: New Methods ==========
+
+  async sendPollMessage(
+    chatId: string,
+    question: string,
+    options: string[],
+    allowMultipleAnswers?: boolean,
+  ): Promise<{ messageId: string; timestamp: number }> {
+    this.ensureReady();
+    const poll = new Poll(question, options, { allowMultipleAnswers: allowMultipleAnswers ?? false, messageSecret: undefined });
+    const msg = await this.client!.sendMessage(chatId, poll);
+    return { messageId: msg.id._serialized, timestamp: msg.timestamp };
+  }
+
+  async editTextMessage(messageId: string, newText: string): Promise<void> {
+    this.ensureReady();
+    const msg = await this.client!.getMessageById(messageId);
+    await (msg as unknown as MessageWithReactions).edit(newText);
+  }
+
+  async markChatRead(chatId: string): Promise<void> {
+    this.ensureReady();
+    const chat = await this.client!.getChatById(chatId);
+    await chat.sendSeen();
+  }
+
+  async setPresence(chatId: string, presence: 'typing' | 'recording' | 'paused'): Promise<void> {
+    this.ensureReady();
+    const chat = await this.client!.getChatById(chatId);
+    if (presence === 'typing') {
+      await chat.sendStateTyping();
+    } else if (presence === 'recording') {
+      await chat.sendStateRecording();
+    } else {
+      await chat.clearState();
+    }
+  }
+
+  async sendViewOnceMedia(
+    chatId: string,
+    mediaUrl: string,
+    _mediaType: 'image' | 'video',
+  ): Promise<{ messageId: string; timestamp: number }> {
+    this.ensureReady();
+    const media = await MessageMedia.fromUrl(mediaUrl);
+    const msg = await this.client!.sendMessage(chatId, media, { isViewOnce: true });
+    return { messageId: msg.id._serialized, timestamp: msg.timestamp };
+  }
+
+  async joinGroupByInviteCode(inviteCode: string): Promise<{ id: string; name: string }> {
+    this.ensureReady();
+    const result = await this.client!.acceptInvite(inviteCode);
+    const groupId = typeof result === 'string' ? result : String(result);
+    const chat = await this.client!.getChatById(groupId);
+    return { id: groupId, name: chat.name };
+  }
+
+  async setGroupAnnounce(groupId: string, announce: boolean): Promise<void> {
+    this.ensureReady();
+    const chat = await this.client!.getChatById(groupId);
+    await (chat as unknown as GroupChat).setAnnouncement(announce);
+  }
+
+  async setGroupRestrict(groupId: string, restrict: boolean): Promise<void> {
+    this.ensureReady();
+    const chat = await this.client!.getChatById(groupId);
+    await (chat as unknown as GroupChat).setInfoAdminsOnly(restrict);
+  }
+
+  async setGroupPicture(groupId: string, imageUrl: string): Promise<void> {
+    this.ensureReady();
+    const media = await MessageMedia.fromUrl(imageUrl);
+    const chat = await this.client!.getChatById(groupId);
+    await (chat as unknown as GroupChat).setPicture(media);
+  }
+
+  async sendTextWithMentions(
+    chatId: string,
+    text: string,
+    mentionedIds: string[],
+  ): Promise<{ messageId: string; timestamp: number }> {
+    this.ensureReady();
+    const msg = await this.client!.sendMessage(chatId, text, { mentions: mentionedIds });
+    return { messageId: msg.id._serialized, timestamp: msg.timestamp };
+  }
+
+  async resolveNumber(
+    phoneNumber: string,
+  ): Promise<{ id: string; user: string; server: string; isRegistered: boolean } | null> {
+    this.ensureReady();
+    const result = await this.client!.getNumberId(phoneNumber);
+    if (!result) return null;
+    return { id: result._serialized, user: result.user, server: result.server, isRegistered: true };
+  }
 
   private ensureReady(): void {
     if (this.status !== EngineStatus.READY || !this.client) {

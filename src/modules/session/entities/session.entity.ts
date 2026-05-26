@@ -36,6 +36,16 @@ export class Session {
   @Column({ type: jsonColumnType(), default: '{}' })
   config: Record<string, unknown>;
 
+  // Per-session webhook configuration
+  @Column({ type: 'varchar', length: 2048, nullable: true })
+  webhookUrl: string | null;
+
+  @Column({ type: jsonColumnType(), nullable: true })
+  webhookEvents: string[] | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  webhookSecret: string | null;
+
   // Phase 3: Proxy per session
   @Column({ type: 'varchar', length: 255, nullable: true })
   proxyUrl: string | null;

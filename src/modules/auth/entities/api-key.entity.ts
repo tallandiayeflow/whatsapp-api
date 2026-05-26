@@ -34,6 +34,9 @@ export class ApiKey {
   @Column({ type: 'simple-array', nullable: true })
   allowedSessions: string[] | null;
 
+  @Column({ type: 'varchar', length: 36, nullable: true })
+  defaultSessionId: string | null;
+
   @Column({ type: 'boolean', default: true })
   isActive: boolean;
 

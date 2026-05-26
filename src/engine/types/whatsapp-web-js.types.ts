@@ -5,6 +5,16 @@
 import { Chat, Client, Message } from 'whatsapp-web.js';
 
 /**
+ * Incoming call object from whatsapp-web.js incoming_call event.
+ */
+export interface WwjsCall {
+  id: string;
+  from: string;
+  isVideo: boolean;
+  isGroup: boolean;
+}
+
+/**
  * WhatsApp Group Chat with group-specific properties and methods.
  */
 export interface GroupChat extends Omit<Chat, 'isReadOnly' | 'getLabels'> {
@@ -31,13 +41,17 @@ export interface GroupChat extends Omit<Chat, 'isReadOnly' | 'getLabels'> {
   removeLabel(id: string): Promise<void>;
   getInviteCode(): Promise<string>;
   revokeInvite(): Promise<string>;
+  setAnnouncement(announce: boolean): Promise<void>;
+  setInfoAdminsOnly(restrict: boolean): Promise<void>;
+  setPicture(media: import('whatsapp-web.js').MessageMedia): Promise<void>;
 }
 
 /**
- * WhatsApp Message with reaction methods.
+ * WhatsApp Message with reaction and edit methods.
  */
 export interface MessageWithReactions extends Omit<Message, 'hasReaction' | 'getReactions' | 'react'> {
   react(emoji: string): Promise<void>;
+  edit(newText: string): Promise<Message>;
   hasReaction?: boolean;
   getReactions(): Promise<
     Array<{

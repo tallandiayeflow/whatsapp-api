@@ -15,6 +15,7 @@ function createMockApiKey(role = ApiKeyRole.ADMIN): ApiKey {
     role,
     allowedIps: null,
     allowedSessions: null,
+    defaultSessionId: null,
     isActive: true,
     expiresAt: null,
     lastUsedAt: null,
