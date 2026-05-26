@@ -68,7 +68,7 @@
     "tar": "^7.5.15",
     "tar-stream": "^3.2.0",
     "typeorm": "^0.3.29",
-    "uuid": "^11.0.5",
+    "uuid": "^14.0.0",
     "whatsapp-web.js": "^1.26.1-alpha.3"
   },
   "devDependencies": {
