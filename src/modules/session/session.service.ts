@@ -246,7 +246,16 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
     const session = await this.findOne(id);
 
     if (this.engines.has(id)) {
-      throw new BadRequestException('Session is already started');
+      // If existing engine is in a dead state (failed/disconnected), clean it up and allow restart
+      const existingEngine = this.engines.get(id)!;
+      const deadStates = [EngineStatus.FAILED, EngineStatus.DISCONNECTED];
+      if (deadStates.includes(existingEngine.getStatus())) {
+        await existingEngine.destroy().catch(() => {});
+        this.engines.delete(id);
+        this.cancelReconnect(id);
+      } else {
+        throw new BadRequestException('Session is already started');
+      }
     }
 
     // Execute hook before starting
@@ -290,6 +299,7 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
     });
     this.engines.set(id, engine);
 
+    try {
     await engine.initialize({
       onQRCode: (): void => {
         this.logger.log('QR code generated', {
@@ -439,6 +449,20 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
     });
 
     await this.updateStatus(id, SessionStatus.INITIALIZING);
+    } catch (error: unknown) {
+      // Engine failed to start — remove from map so start() can be retried
+      await this.cleanupEngine(id);
+      await this.updateStatus(id, SessionStatus.FAILED);
+      throw error;
+    }
+  }
+
+  private async cleanupEngine(id: string): Promise<void> {
+    const engine = this.engines.get(id);
+    if (engine) {
+      await engine.destroy().catch(() => {});
+      this.engines.delete(id);
+    }
   }
 
   private scheduleReconnect(id: string, session: Session): void {

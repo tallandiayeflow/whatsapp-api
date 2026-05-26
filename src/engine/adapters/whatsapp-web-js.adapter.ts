@@ -2,6 +2,7 @@ import { EventEmitter } from 'events';
 import { Client, LocalAuth, MessageMedia, Poll } from 'whatsapp-web.js';
 import * as qrcode from 'qrcode';
 import * as path from 'path';
+import * as fs from 'fs';
 import {
   IWhatsAppEngine,
   EngineStatus,
@@ -101,10 +102,33 @@ export class WhatsAppWebJsAdapter extends EventEmitter implements IWhatsAppEngin
       });
 
       this.setupEventHandlers();
+      this.clearChromiumLocks();
       await this.client.initialize();
     } catch (error) {
       this.setStatus(EngineStatus.FAILED);
       throw error;
+    }
+  }
+
+  private clearChromiumLocks(): void {
+    // LocalAuth stores profile at {dataPath}/session-{clientId}/
+    // SingletonLock is a SYMLINK (not a regular file) — must use lstatSync, not existsSync,
+    // because existsSync follows the symlink and returns false for broken symlinks.
+    const profileDir = path.join(
+      path.resolve(this.config.sessionDataPath),
+      `session-${this.config.sessionId}`,
+    );
+    for (const dir of [profileDir, path.join(profileDir, 'Default')]) {
+      for (const lockFile of ['SingletonLock', 'SingletonCookie', 'SingletonSocket']) {
+        const lockPath = path.join(dir, lockFile);
+        try {
+          fs.lstatSync(lockPath); // throws if not found (works for symlinks too)
+          fs.unlinkSync(lockPath);
+          this.logger.log(`Removed stale Chromium lock: ${lockFile}`, { sessionId: this.config.sessionId });
+        } catch {
+          // File/symlink doesn't exist — nothing to remove
+        }
+      }
     }
   }
 
