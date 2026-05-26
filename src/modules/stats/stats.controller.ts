@@ -18,6 +18,12 @@ export class StatsController {
     return this.statsService.getOverview();
   }
 
+  @Get('system')
+  @ApiOperation({ summary: 'Get system metrics (uptime, memory, queue status)' })
+  async getSystemMetrics() {
+    return this.statsService.getSystemMetrics();
+  }
+
   @Get('messages')
   @ApiOperation({ summary: 'Get message statistics with time series' })
   async getMessageStats(@Query() query: StatsQueryDto) {

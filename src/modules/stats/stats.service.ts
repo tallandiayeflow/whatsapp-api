@@ -39,6 +39,27 @@ export interface SessionStats {
   hourlyActivity: Array<{ hour: number; sent: number; received: number }>;
 }
 
+export interface SystemMetrics {
+  uptime: number;
+  uptimeHuman: string;
+  memory: {
+    heapUsed: number;
+    heapTotal: number;
+    rss: number;
+    heapUsedMb: number;
+    heapTotalMb: number;
+    rssMb: number;
+  };
+  nodeVersion: string;
+  platform: string;
+  env: string;
+  queueEnabled: boolean;
+  redisEnabled: boolean;
+  sessionsActive: number;
+  messagesTotal: number;
+  messagesToday: number;
+}
+
 @Injectable()
 export class StatsService {
   constructor(
@@ -241,6 +262,58 @@ export class StatsService {
       })),
       hourlyActivity,
     };
+  }
+
+  async getSystemMetrics(): Promise<SystemMetrics> {
+    const uptime = process.uptime();
+    const memRaw = process.memoryUsage();
+
+    const sessions = await this.sessionRepo.find();
+    let sessionsActive = 0;
+    for (const session of sessions) {
+      if (session.status === SessionStatus.READY) sessionsActive++;
+    }
+
+    const messagesTotal = await this.messageRepo.count();
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const messagesToday = await this.messageRepo
+      .createQueryBuilder('m')
+      .where('m.createdAt >= :todayStart', { todayStart })
+      .getCount();
+
+    return {
+      uptime,
+      uptimeHuman: this.formatUptime(uptime),
+      memory: {
+        heapUsed: memRaw.heapUsed,
+        heapTotal: memRaw.heapTotal,
+        rss: memRaw.rss,
+        heapUsedMb: Math.round((memRaw.heapUsed / 1024 / 1024) * 10) / 10,
+        heapTotalMb: Math.round((memRaw.heapTotal / 1024 / 1024) * 10) / 10,
+        rssMb: Math.round((memRaw.rss / 1024 / 1024) * 10) / 10,
+      },
+      nodeVersion: process.version,
+      platform: process.platform,
+      env: process.env.NODE_ENV || 'development',
+      queueEnabled: process.env.QUEUE_ENABLED === 'true',
+      redisEnabled: process.env.REDIS_ENABLED === 'true',
+      sessionsActive,
+      messagesTotal,
+      messagesToday,
+    };
+  }
+
+  private formatUptime(seconds: number): string {
+    const d = Math.floor(seconds / 86400);
+    const h = Math.floor((seconds % 86400) / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const parts: string[] = [];
+    if (d > 0) parts.push(`${d}d`);
+    if (h > 0) parts.push(`${h}h`);
+    parts.push(`${m}m`);
+    return parts.join(' ');
   }
 
   private getPeriodStart(period: '24h' | '7d' | '30d'): Date {

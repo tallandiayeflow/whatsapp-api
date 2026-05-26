@@ -389,6 +389,46 @@ export const settingsApi = {
 };
 
 // =============================================================================
+// Stats API
+// =============================================================================
+
+export interface SystemMetrics {
+  uptime: number;
+  uptimeHuman: string;
+  memory: {
+    heapUsed: number;
+    heapTotal: number;
+    rss: number;
+    heapUsedMb: number;
+    heapTotalMb: number;
+    rssMb: number;
+  };
+  nodeVersion: string;
+  platform: string;
+  env: string;
+  queueEnabled: boolean;
+  redisEnabled: boolean;
+  sessionsActive: number;
+  messagesTotal: number;
+  messagesToday: number;
+}
+
+export interface OverviewStats {
+  sessions: { active: number; total: number; byStatus: Record<string, number> };
+  messages: {
+    sent: number;
+    received: number;
+    failed: number;
+    today: { sent: number; received: number };
+  };
+}
+
+export const statsApi = {
+  getOverview: () => request<OverviewStats>('/stats/overview'),
+  getSystemMetrics: () => request<SystemMetrics>('/stats/system'),
+};
+
+// =============================================================================
 // Plugin Types
 // =============================================================================
 

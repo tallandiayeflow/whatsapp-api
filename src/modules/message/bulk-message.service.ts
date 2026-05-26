@@ -1,7 +1,9 @@
-import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, NotFoundException, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { randomUUID } from 'crypto';
+import { Queue } from 'bullmq';
+import { InjectQueue } from '@nestjs/bullmq';
 import {
   MessageBatch,
   BatchStatus,
@@ -12,6 +14,16 @@ import {
 import { SendBulkMessageDto } from './dto/bulk-message.dto';
 import { SessionService } from '../session/session.service';
 import { IWhatsAppEngine } from '../../engine/interfaces/whatsapp-engine.interface';
+import { QUEUE_NAMES } from '../queue/queue-names';
+
+interface MessageJobData {
+  sessionId: string;
+  batchId: string;
+  messageIndex: number;
+  chatId: string;
+  type: string;
+  content: Record<string, unknown>;
+}
 
 // Type definitions for bulk message content
 interface BulkMessageContent {
@@ -27,12 +39,18 @@ interface BulkMessageContent {
 export class BulkMessageService {
   private readonly logger = new Logger(BulkMessageService.name);
   private readonly processingBatches = new Map<string, boolean>(); // Track active batches for cancellation
+  private readonly queueEnabled: boolean;
 
   constructor(
     @InjectRepository(MessageBatch, 'data')
     private readonly batchRepository: Repository<MessageBatch>,
     private readonly sessionService: SessionService,
-  ) {}
+    @Optional()
+    @InjectQueue(QUEUE_NAMES.MESSAGE)
+    private readonly messageQueue?: Queue<MessageJobData>,
+  ) {
+    this.queueEnabled = !!messageQueue;
+  }
 
   async createBatch(sessionId: string, dto: SendBulkMessageDto): Promise<MessageBatch> {
     // Validate session exists
@@ -77,12 +95,54 @@ export class BulkMessageService {
     await this.batchRepository.save(batch);
     this.logger.log(`Created batch ${batchId} with ${dto.messages.length} messages`);
 
-    // Start processing asynchronously
-    this.processBatch(batch.id).catch(err => {
-      this.logger.error(`Batch ${batchId} processing error: ${String(err)}`);
-    });
+    if (this.queueEnabled) {
+      // Enqueue individual message jobs via BullMQ
+      await this.queueBatch(batch.sessionId, batch.batchId);
+    } else {
+      // Start processing asynchronously (in-process fallback)
+      this.processBatch(batch.id).catch(err => {
+        this.logger.error(`Batch ${batchId} processing error: ${String(err)}`);
+      });
+    }
 
     return batch;
+  }
+
+  async queueBatch(sessionId: string, batchId: string): Promise<void> {
+    const batch = await this.batchRepository.findOne({ where: { batchId, sessionId } });
+    if (!batch) {
+      throw new NotFoundException(`Batch '${batchId}' not found`);
+    }
+
+    if (!this.messageQueue) {
+      throw new Error('Message queue is not available');
+    }
+
+    const baseDelay = batch.options?.delayBetweenMessages ?? 3000;
+
+    const jobs = batch.messages.map((msg, messageIndex) => ({
+      name: `message:${batchId}:${messageIndex}`,
+      data: {
+        sessionId,
+        batchId,
+        messageIndex,
+        chatId: msg.chatId,
+        type: msg.type,
+        content: msg.content,
+      } satisfies MessageJobData,
+      opts: {
+        delay: messageIndex * baseDelay,
+      },
+    }));
+
+    await this.messageQueue.addBulk(jobs);
+
+    // Update batch status to PROCESSING
+    batch.status = BatchStatus.PROCESSING;
+    batch.startedAt = new Date();
+    await this.batchRepository.save(batch);
+
+    this.logger.log(`Queued ${jobs.length} message jobs for batch ${batchId}`);
   }
 
   async getBatchStatus(sessionId: string, batchId: string): Promise<MessageBatch> {
