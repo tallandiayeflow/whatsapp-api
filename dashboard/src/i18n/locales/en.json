@@ -63,7 +63,10 @@
     "plugins": "Plugins",
     "logs": "Logs",
     "stats": "Statistics",
-    "channels": "Channels"
+    "channels": "Channels",
+    "groups": "Groups",
+    "contacts": "Contacts",
+    "statuses": "Statuses"
   },
   "errorBoundary": {
     "title": "Something went wrong",

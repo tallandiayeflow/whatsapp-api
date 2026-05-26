@@ -542,3 +542,157 @@ export const channelApi = {
       method: 'DELETE',
     }),
 };
+
+// =============================================================================
+// Groups API
+// =============================================================================
+
+export interface GroupParticipant {
+  id: string;
+  number: string;
+  name?: string;
+  isAdmin: boolean;
+  isSuperAdmin: boolean;
+}
+
+export interface Group {
+  id: string;
+  name: string;
+  participantsCount?: number;
+  isAdmin?: boolean;
+}
+
+export interface GroupInfo extends Group {
+  description?: string;
+  owner?: string;
+  createdAt?: string;
+  participants: GroupParticipant[];
+  isReadOnly?: boolean;
+  isAnnounce?: boolean;
+}
+
+export const groupApi = {
+  list: (sessionId: string) =>
+    request<Group[]>(`/sessions/${sessionId}/groups`),
+  get: (sessionId: string, groupId: string) =>
+    request<GroupInfo>(`/sessions/${sessionId}/groups/${encodeURIComponent(groupId)}`),
+  create: (sessionId: string, data: { name: string; participants: string[] }) =>
+    request<Group>(`/sessions/${sessionId}/groups`, { method: 'POST', body: JSON.stringify(data) }),
+  getInviteCode: (sessionId: string, groupId: string) =>
+    request<{ inviteCode: string; inviteLink: string }>(`/sessions/${sessionId}/groups/${encodeURIComponent(groupId)}/invite-code`),
+  revokeInviteCode: (sessionId: string, groupId: string) =>
+    request<{ inviteCode: string; inviteLink: string; message: string }>(
+      `/sessions/${sessionId}/groups/${encodeURIComponent(groupId)}/invite-code/revoke`,
+      { method: 'POST' },
+    ),
+  leave: (sessionId: string, groupId: string) =>
+    request<{ success: boolean; message: string }>(`/sessions/${sessionId}/groups/${encodeURIComponent(groupId)}/leave`, { method: 'POST' }),
+  join: (sessionId: string, inviteCode: string) =>
+    request<Group>(`/sessions/${sessionId}/groups/join`, { method: 'POST', body: JSON.stringify({ inviteCode }) }),
+  addParticipants: (sessionId: string, groupId: string, participants: string[]) =>
+    request<{ success: boolean; message: string }>(
+      `/sessions/${sessionId}/groups/${encodeURIComponent(groupId)}/participants`,
+      { method: 'POST', body: JSON.stringify({ participants }) },
+    ),
+  removeParticipants: (sessionId: string, groupId: string, participants: string[]) =>
+    request<{ success: boolean; message: string }>(
+      `/sessions/${sessionId}/groups/${encodeURIComponent(groupId)}/participants`,
+      { method: 'DELETE', body: JSON.stringify({ participants }) },
+    ),
+  promoteParticipants: (sessionId: string, groupId: string, participants: string[]) =>
+    request<{ success: boolean; message: string }>(
+      `/sessions/${sessionId}/groups/${encodeURIComponent(groupId)}/participants/promote`,
+      { method: 'POST', body: JSON.stringify({ participants }) },
+    ),
+  demoteParticipants: (sessionId: string, groupId: string, participants: string[]) =>
+    request<{ success: boolean; message: string }>(
+      `/sessions/${sessionId}/groups/${encodeURIComponent(groupId)}/participants/demote`,
+      { method: 'POST', body: JSON.stringify({ participants }) },
+    ),
+};
+
+// =============================================================================
+// Contacts API
+// =============================================================================
+
+export interface Contact {
+  id: string;
+  name?: string;
+  pushName?: string;
+  number: string;
+  isMyContact: boolean;
+  isBlocked: boolean;
+  profilePicUrl?: string;
+}
+
+export interface NumberCheckResult {
+  number: string;
+  exists: boolean;
+  whatsappId: string | null;
+}
+
+export const contactApi = {
+  list: (sessionId: string) =>
+    request<Contact[]>(`/sessions/${sessionId}/contacts`),
+  get: (sessionId: string, contactId: string) =>
+    request<Contact>(`/sessions/${sessionId}/contacts/${encodeURIComponent(contactId)}`),
+  check: (sessionId: string, number: string) =>
+    request<NumberCheckResult>(`/sessions/${sessionId}/contacts/check/${encodeURIComponent(number)}`),
+  block: (sessionId: string, contactId: string) =>
+    request<{ success: boolean; message: string }>(
+      `/sessions/${sessionId}/contacts/${encodeURIComponent(contactId)}/block`,
+      { method: 'POST' },
+    ),
+  unblock: (sessionId: string, contactId: string) =>
+    request<{ success: boolean; message: string }>(
+      `/sessions/${sessionId}/contacts/${encodeURIComponent(contactId)}/block`,
+      { method: 'DELETE' },
+    ),
+};
+
+// =============================================================================
+// Statuses API
+// =============================================================================
+
+export interface StatusContact {
+  id: string;
+  name?: string;
+  pushName?: string;
+}
+
+export interface Status {
+  id: string;
+  contact: StatusContact;
+  type: 'text' | 'image' | 'video';
+  caption?: string;
+  mediaUrl?: string;
+  backgroundColor?: string;
+  font?: number;
+  timestamp: string;
+  expiresAt: string;
+}
+
+export interface StatusResult {
+  statusId: string;
+  timestamp: string;
+  expiresAt: string;
+}
+
+export const statusApi = {
+  getAll: (sessionId: string) =>
+    request<{ statuses: Status[] }>(`/sessions/${sessionId}/status`),
+  sendText: (sessionId: string, data: { text: string; backgroundColor?: string; font?: number }) =>
+    request<StatusResult>(`/sessions/${sessionId}/status/send-text`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  sendImage: (sessionId: string, data: { image: { url?: string }; caption?: string }) =>
+    request<StatusResult>(`/sessions/${sessionId}/status/send-image`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  delete: (sessionId: string, statusId: string) =>
+    request<{ message: string }>(`/sessions/${sessionId}/status/${encodeURIComponent(statusId)}`, {
+      method: 'DELETE',
+    }),
+};

@@ -23,6 +23,9 @@ import {
   BarChart2,
   Radio,
   Search,
+  Users,
+  BookUser,
+  CircleDot,
 } from 'lucide-react';
 import { CommandPalette } from './CommandPalette';
 import { useTheme } from '../hooks/useTheme';
@@ -46,6 +49,9 @@ const allNavItems = [
   { to: '/logs', icon: FileText, key: 'logs' as const, adminOnly: false },
   { to: '/stats', icon: BarChart2, key: 'stats' as const, adminOnly: false },
   { to: '/channels', icon: Radio, key: 'channels' as const, adminOnly: false },
+  { to: '/groups', icon: Users, key: 'groups' as const, adminOnly: false },
+  { to: '/contacts', icon: BookUser, key: 'contacts' as const, adminOnly: false },
+  { to: '/statuses', icon: CircleDot, key: 'statuses' as const, adminOnly: false },
 ];
 
 const themeIcons = { light: Sun, dark: Moon, system: Monitor };

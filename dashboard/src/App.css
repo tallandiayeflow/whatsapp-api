@@ -113,7 +113,11 @@ a:hover {
 .plugins-page,
 .message-tester,
 .infrastructure-page,
-.api-keys-page {
+.api-keys-page,
+.groups-page,
+.contacts-page,
+.statuses-page,
+.channels-page {
   animation: pageEnter 0.25s ease;
 }
 
@@ -165,6 +169,9 @@ img, video, canvas, svg { max-width: 100%; }
   .api-keys-page,
   .plugins-page,
   .channels-page,
+  .groups-page,
+  .contacts-page,
+  .statuses-page,
   .dashboard,
   .stats-page,
   .logs-page {
@@ -215,6 +222,9 @@ img, video, canvas, svg { max-width: 100%; }
   .api-keys-page,
   .plugins-page,
   .channels-page,
+  .groups-page,
+  .contacts-page,
+  .statuses-page,
   .dashboard,
   .stats-page,
   .logs-page {

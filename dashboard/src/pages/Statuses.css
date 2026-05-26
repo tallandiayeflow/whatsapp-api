@@ -1,0 +1,383 @@
+.statuses-page {
+  padding: 2rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ── Session bar ─────────────────────────────────────────────────────────── */
+.statuses-session-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.session-bar-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.session-bar-select {
+  padding: 0.55rem 0.9rem;
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  cursor: pointer;
+  min-width: 200px;
+}
+.session-bar-select:focus { outline: 2px solid var(--primary); outline-offset: 1px; }
+
+.session-bar-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+/* ── Loading / empty / placeholder ──────────────────────────────────────── */
+.statuses-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem;
+  color: var(--text-muted);
+}
+
+.statuses-empty,
+.statuses-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 6rem 2rem;
+  text-align: center;
+  color: var(--text-muted);
+  gap: 1rem;
+}
+.statuses-empty h3, .statuses-placeholder h3 {
+  margin: 0; font-size: 1.125rem; color: var(--text-secondary); font-weight: 600;
+}
+.statuses-empty p, .statuses-placeholder p { margin: 0; font-size: 0.9375rem; }
+.placeholder-icon { opacity: 0.2; }
+
+/* ── Status grid ─────────────────────────────────────────────────────────── */
+.statuses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.25rem;
+}
+
+/* ── Status card ─────────────────────────────────────────────────────────── */
+.status-card {
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: box-shadow var(--transition-base), transform var(--transition-base);
+}
+.status-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+
+.status-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.status-contact {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-width: 0;
+}
+
+.status-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(37, 211, 102, 0.12);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.status-contact-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.status-contact-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+.status-time {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.status-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.status-expires {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.btn-icon-sm {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: all var(--transition-fast);
+}
+.btn-danger:hover { background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); color: #dc2626; }
+
+/* ── Status content ──────────────────────────────────────────────────────── */
+.status-content {
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.status-content--text {
+  padding: 1.25rem;
+}
+
+.status-text {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.5;
+  text-align: center;
+  word-break: break-word;
+  color: inherit;
+}
+
+.status-content--image,
+.status-content--video {
+  background: var(--bg-light);
+  position: relative;
+}
+
+.status-media {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.status-media img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  display: block;
+}
+.status-media svg { color: var(--text-muted); }
+.status-media-caption {
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 0;
+  text-align: center;
+}
+
+/* ── Status footer ───────────────────────────────────────────────────────── */
+.status-footer {
+  padding: 0.625rem 1rem;
+  border-top: 1px solid var(--border);
+  background: var(--bg-light);
+}
+
+.status-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+/* ── Post modal ──────────────────────────────────────────────────────────── */
+.modal--status .modal-body { max-height: 70vh; overflow-y: auto; }
+
+.status-type-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0;
+}
+
+.type-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  margin-bottom: -1px;
+  transition: all var(--transition-fast);
+}
+.type-tab:hover { color: var(--text-primary); }
+.type-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+.status-textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--bg-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.9375rem;
+  color: var(--text-primary);
+  font-family: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.status-textarea:focus { outline: 2px solid var(--primary); outline-offset: 1px; }
+
+.textarea-count {
+  text-align: right;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+  margin-bottom: 1rem;
+}
+
+/* Color picker */
+.color-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.color-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.1s;
+  outline: none;
+}
+.color-swatch:hover { transform: scale(1.15); }
+.color-swatch.selected { outline: 2px solid var(--primary); outline-offset: 2px; transform: scale(1.1); }
+
+/* Font picker */
+.font-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.font-btn {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: none;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: inherit;
+}
+.font-btn:hover { border-color: var(--primary); color: var(--primary); }
+.font-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+/* Status preview */
+.status-preview {
+  border-radius: 10px;
+  padding: 1.5rem;
+  text-align: center;
+  font-size: 1rem;
+  line-height: 1.6;
+  word-break: break-word;
+  margin-top: 0.75rem;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Image preview */
+.image-preview {
+  margin-top: 0.75rem;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  max-height: 200px;
+}
+.image-preview img { width: 100%; max-height: 200px; object-fit: cover; display: block; }
+
+/* Danger button */
+.btn-danger-solid {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.25rem;
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background var(--transition-fast);
+}
+.btn-danger-solid:hover { background: #b91c1c; }
+.btn-danger-solid:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .statuses-page { padding: 1rem; }
+  .statuses-grid { grid-template-columns: 1fr 1fr; gap: 0.875rem; }
+  .status-contact-name { max-width: 100px; }
+}
+
+@media (max-width: 480px) {
+  .statuses-page { padding: 0.75rem; }
+  .statuses-grid { grid-template-columns: 1fr; }
+  .statuses-session-bar { flex-direction: column; align-items: flex-start; }
+  .session-bar-select { width: 100%; }
+  .modal--status { width: 98% !important; }
+}
