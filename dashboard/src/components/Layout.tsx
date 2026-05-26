@@ -22,7 +22,9 @@ import {
   UserCircle,
   BarChart2,
   Radio,
+  Search,
 } from 'lucide-react';
+import { CommandPalette } from './CommandPalette';
 import { useTheme } from '../hooks/useTheme';
 import { type UserRole } from '../hooks/useRole';
 import { supportedLanguages, type SupportedLanguage } from '../i18n';
@@ -60,6 +62,7 @@ export function Layout({ onLogout, userRole }: LayoutProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [cmdOpen, setCmdOpen] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
@@ -69,6 +72,17 @@ export function Layout({ onLogout, userRole }: LayoutProps) {
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setCmdOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   const handleNavClick = () => {
@@ -137,6 +151,18 @@ export function Layout({ onLogout, userRole }: LayoutProps) {
           </button>
         )}
 
+        <div className="sidebar-search-area">
+          <button
+            className="cmd-trigger-btn"
+            onClick={() => setCmdOpen(true)}
+            title="Ctrl+K"
+          >
+            <Search size={16} />
+            <span>Recherche rapide</span>
+            <kbd>⌘K</kbd>
+          </button>
+        </div>
+
         <nav className="sidebar-nav">
           {navItems.map(({ to, icon: Icon, key }) => {
             const label = t(`nav.${key}`);
@@ -194,6 +220,8 @@ export function Layout({ onLogout, userRole }: LayoutProps) {
       <main className={`main-content ${isCollapsed ? 'expanded' : ''} ${isMobile ? 'mobile' : ''}`}>
         <Outlet />
       </main>
+
+      <CommandPalette isOpen={cmdOpen} onClose={() => setCmdOpen(false)} />
     </div>
   );
 }

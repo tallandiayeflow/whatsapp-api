@@ -92,3 +92,52 @@ a {
 a:hover {
   text-decoration: underline;
 }
+
+/* ==================== Enhanced variables ==================== */
+:root {
+  --primary-light: rgba(37, 211, 102, 0.1);
+  --primary-gradient: linear-gradient(135deg, #25d366 0%, #1da851 100%);
+  --sidebar-gradient: linear-gradient(180deg, var(--bg-white) 0%, var(--bg-light) 100%);
+  --transition-fast: 150ms ease;
+  --transition-base: 200ms ease;
+  --transition-slow: 300ms ease;
+}
+
+/* Page entry animation */
+.page-content,
+.dashboard,
+.sessions-page,
+.webhooks-page,
+.logs-page,
+.stats-page,
+.plugins-page,
+.message-tester,
+.infrastructure-page,
+.api-keys-page {
+  animation: pageEnter 0.25s ease;
+}
+
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Enhanced stat cards */
+.stat-card {
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
+}
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Better focus ring globally */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--primary-light);
+}

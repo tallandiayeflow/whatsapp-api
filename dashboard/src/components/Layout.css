@@ -147,8 +147,21 @@
 }
 
 .nav-item.active {
-  background: rgba(37, 211, 102, 0.1);
+  background: var(--primary-light, rgba(37, 211, 102, 0.1));
   color: var(--primary);
+  font-weight: 600;
+  position: relative;
+}
+
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 20%;
+  height: 60%;
+  width: 3px;
+  background: var(--primary);
+  border-radius: 0 3px 3px 0;
 }
 
 .nav-item.active svg {
@@ -370,3 +383,38 @@
     margin-right: 0;
   }
 }
+
+/* ==================== Command Palette Trigger ==================== */
+.sidebar-search-area {
+  padding: 0 0 0.25rem;
+}
+
+.cmd-trigger-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: calc(100% - 1.5rem);
+  margin: 0 0.75rem 0.5rem;
+  padding: 0.6rem 0.9rem;
+  background: var(--bg-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+.cmd-trigger-btn:hover { border-color: var(--primary); color: var(--text-secondary); }
+.cmd-trigger-btn span { flex: 1; text-align: left; }
+.cmd-trigger-btn kbd {
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.1rem 0.3rem;
+  font-size: 0.6875rem;
+  font-family: inherit;
+}
+.sidebar.collapsed .cmd-trigger-btn span,
+.sidebar.collapsed .cmd-trigger-btn kbd { display: none; }
+.sidebar.collapsed .cmd-trigger-btn { justify-content: center; width: auto; margin: 0 0.5rem 0.5rem; }

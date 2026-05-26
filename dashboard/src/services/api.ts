@@ -426,6 +426,13 @@ export interface OverviewStats {
 export const statsApi = {
   getOverview: () => request<OverviewStats>('/stats/overview'),
   getSystemMetrics: () => request<SystemMetrics>('/stats/system'),
+  getMessageStats: (period: '24h' | '7d' | '30d' = '24h') =>
+    request<{
+      timeSeries: Array<{ timestamp: string; sent: number; received: number }>;
+      byType: Record<string, number>;
+      bySession: Array<{ sessionId: string; name: string; sent: number; received: number }>;
+      topChats: Array<{ chatId: string; messageCount: number }>;
+    }>(`/stats/messages?period=${period}`),
 };
 
 // =============================================================================

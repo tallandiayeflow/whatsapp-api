@@ -12,7 +12,9 @@ export function Logs() {
   useDocumentTitle(t('logs.title'));
   const [searchQuery, setSearchQuery] = useState('');
   const [severityFilter, setSeverityFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState<'all' | 'today' | '7d' | '30d'>('all');
   const [page, setPage] = useState(1);
+  const [expandedLog, setExpandedLog] = useState<string | null>(null);
   const limit = 20;
 
   const severityParam = severityFilter !== 'all' ? severityFilter : undefined;
@@ -24,12 +26,44 @@ export function Logs() {
     const matchesSearch =
       log.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (log.errorMessage || '').toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
+
+    let matchesDate = true;
+    if (dateFilter !== 'all') {
+      const logDate = new Date(log.createdAt).getTime();
+      const now = Date.now();
+      const ranges = { today: 86400000, '7d': 7 * 86400000, '30d': 30 * 86400000 };
+      matchesDate = logDate >= now - ranges[dateFilter];
+    }
+
+    return matchesSearch && matchesDate;
   });
 
   const totalPages = Math.ceil(total / limit);
 
   const formatTimestamp = (date: string) => new Date(date).toLocaleString();
+
+  const handleExportCsv = () => {
+    const rows = [
+      ['Timestamp', 'Action', 'Session', 'API Key', 'IP', 'Severity', 'Error'],
+      ...filteredLogs.map(log => [
+        formatTimestamp(log.createdAt),
+        log.action,
+        log.sessionName || log.sessionId || '',
+        log.apiKeyName || '',
+        log.ipAddress || '',
+        log.severity,
+        log.errorMessage || '',
+      ]),
+    ];
+    const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `openwa-logs-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   if (loading && logs.length === 0) {
     return (
@@ -48,7 +82,7 @@ export function Logs() {
         title={t('logs.title')}
         subtitle={t('logs.subtitle')}
         actions={
-          <button className="btn-secondary">
+          <button className="btn-secondary" onClick={handleExportCsv}>
             <Download size={18} />
             {t('logs.exportCsv')}
           </button>
@@ -81,6 +115,21 @@ export function Logs() {
             <option value="error">{t('logs.severity.error')}</option>
           </select>
         </div>
+
+        <div className="filter-group">
+          <select
+            value={dateFilter}
+            onChange={e => {
+              setDateFilter(e.target.value as 'all' | 'today' | '7d' | '30d');
+              setPage(1);
+            }}
+          >
+            <option value="all">All time</option>
+            <option value="today">Today</option>
+            <option value="7d">Last 7 days</option>
+            <option value="30d">Last 30 days</option>
+          </select>
+        </div>
       </div>
 
       <div className="logs-table-container">
@@ -101,15 +150,46 @@ export function Logs() {
             </div>
           ) : (
             filteredLogs.map(log => (
-              <div key={log.id} className="table-row">
-                <span className="timestamp">{formatTimestamp(log.createdAt)}</span>
-                <span className="action">{log.action}</span>
-                <span>{log.sessionName || log.sessionId || '—'}</span>
-                <span className="api-key">{log.apiKeyName || '—'}</span>
-                <span className="ip">{log.ipAddress || '—'}</span>
-                <span>
-                  <span className={`severity-badge ${log.severity}`}>{log.severity.toUpperCase()}</span>
-                </span>
+              <div key={log.id}>
+                <div
+                  className={`table-row log-row-clickable${expandedLog === log.id ? ' expanded' : ''}`}
+                  onClick={() => setExpandedLog(expandedLog === log.id ? null : log.id)}
+                >
+                  <span className="timestamp">{formatTimestamp(log.createdAt)}</span>
+                  <span className="action">{log.action}</span>
+                  <span>{log.sessionName || log.sessionId || '—'}</span>
+                  <span className="api-key">{log.apiKeyName || '—'}</span>
+                  <span className="ip">{log.ipAddress || '—'}</span>
+                  <span>
+                    <span className={`severity-badge ${log.severity}`}>{log.severity.toUpperCase()}</span>
+                  </span>
+                </div>
+                {expandedLog === log.id && (
+                  <div className="log-row-expanded">
+                    {(log.method || log.path || log.statusCode != null) && (
+                      <div className="expanded-item">
+                        <span className="expanded-label">Request</span>
+                        <span className="expanded-value">
+                          {[log.method, log.path, log.statusCode != null ? `(${log.statusCode})` : '']
+                            .filter(Boolean)
+                            .join(' ')}
+                        </span>
+                      </div>
+                    )}
+                    {log.errorMessage && (
+                      <div className="expanded-item">
+                        <span className="expanded-label">Error</span>
+                        <span className="expanded-value expanded-error">{log.errorMessage}</span>
+                      </div>
+                    )}
+                    {log.apiKeyId && (
+                      <div className="expanded-item">
+                        <span className="expanded-label">API Key ID</span>
+                        <span className="expanded-value mono">{log.apiKeyId}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ))
           )}

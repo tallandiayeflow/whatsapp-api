@@ -15,6 +15,18 @@ interface ApiResponse {
   error?: string;
 }
 
+interface HistoryEntry {
+  id: string;
+  sessionId: string;
+  recipient: string;
+  type: string;
+  content: string;
+  success: boolean;
+  messageId?: string;
+  error?: string;
+  timestamp: string;
+}
+
 const messageTypes = ['text', 'image', 'video', 'audio', 'document'] as const;
 
 export function MessageTester() {
@@ -32,6 +44,7 @@ export function MessageTester() {
   const [mediaUrl, setMediaUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [response, setResponse] = useState<ApiResponse | null>(null);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
 
   const { data: groups = [], isLoading: loadingGroups } = useSessionGroupsQuery(
     session,
@@ -60,6 +73,7 @@ export function MessageTester() {
     setResponse(null);
 
     const chatId = recipientType === 'group' ? targetId : targetId.replace(/[^0-9]/g, '') + '@c.us';
+    const effectiveRecipient = recipientType === 'group' ? selectedGroup : recipient;
 
     try {
       let result;
@@ -75,17 +89,39 @@ export function MessageTester() {
         result = await messageApi.sendDocument(session, chatId, mediaUrl, content);
       }
 
-      setResponse({
+      const apiResponse: ApiResponse = {
         success: !!result.messageId,
         messageId: result.messageId,
         timestamp: result.timestamp ? new Date(result.timestamp * 1000).toISOString() : new Date().toISOString(),
-      });
+      };
+      setResponse(apiResponse);
+      setHistory(prev => [{
+        id: crypto.randomUUID(),
+        sessionId: session,
+        recipient: effectiveRecipient,
+        type: messageType,
+        content: content || mediaUrl,
+        success: true,
+        messageId: result?.messageId,
+        timestamp: new Date().toISOString(),
+      }, ...prev.slice(0, 19)]);
     } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : t('messageTester.sendFailed');
       setResponse({
         success: false,
         timestamp: new Date().toISOString(),
-        error: err instanceof Error ? err.message : t('messageTester.sendFailed'),
+        error: errorMsg,
       });
+      setHistory(prev => [{
+        id: crypto.randomUUID(),
+        sessionId: session,
+        recipient: effectiveRecipient,
+        type: messageType,
+        content: content || mediaUrl,
+        success: false,
+        error: errorMsg,
+        timestamp: new Date().toISOString(),
+      }, ...prev.slice(0, 19)]);
     } finally {
       setIsLoading(false);
     }
@@ -278,6 +314,35 @@ export function MessageTester() {
           ) : (
             <div className="response-empty">
               <p>{t('messageTester.responseEmpty')}</p>
+            </div>
+          )}
+
+          {history.length > 0 && (
+            <div className="message-history">
+              <div className="history-header">
+                <h3>Historique ({history.length})</h3>
+                <button className="btn-secondary btn-sm" onClick={() => setHistory([])}>Effacer</button>
+              </div>
+              <div className="history-list">
+                {history.map(entry => (
+                  <div key={entry.id} className={`history-entry ${entry.success ? 'success' : 'error'}`}>
+                    <div className="history-icon">
+                      {entry.success ? <CheckCircle size={16} /> : <XCircle size={16} />}
+                    </div>
+                    <div className="history-content">
+                      <span className="history-recipient">{entry.recipient}</span>
+                      <span className="history-type">{entry.type}</span>
+                      {entry.content && (
+                        <span className="history-text">
+                          {entry.content.slice(0, 50)}{entry.content.length > 50 ? '...' : ''}
+                        </span>
+                      )}
+                      {entry.error && <span className="history-error">{entry.error}</span>}
+                    </div>
+                    <span className="history-time">{new Date(entry.timestamp).toLocaleTimeString()}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
