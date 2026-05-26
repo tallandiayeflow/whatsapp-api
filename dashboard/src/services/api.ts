@@ -148,12 +148,19 @@ export interface Settings {
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
 
-  // Get API key from sessionStorage for authentication
+  // Prefer JWT when available, fall back to API key
+  const jwt = sessionStorage.getItem('openwa_jwt');
   const apiKey = sessionStorage.getItem('openwa_api_key');
+
+  const authHeader: Record<string, string> = jwt
+    ? { Authorization: `Bearer ${jwt}` }
+    : apiKey
+    ? { 'X-API-Key': apiKey }
+    : {};
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
-    ...(apiKey ? { 'X-API-Key': apiKey } : {}),
+    ...authHeader,
     ...options.headers,
   };
 
