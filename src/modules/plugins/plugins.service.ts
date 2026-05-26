@@ -2,6 +2,20 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PluginLoaderService, PluginStatus } from '../../core/plugins';
 import { PluginDto } from './dto/plugin.dto';
 
+export interface MarketplacePlugin {
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  author: string;
+  type: string;
+  builtIn: boolean;
+  installed: boolean;
+  npmPackage?: string;
+  repositoryUrl?: string;
+  tags: string[];
+}
+
 @Injectable()
 export class PluginsService {
   constructor(private readonly pluginLoader: PluginLoaderService) {}
@@ -133,5 +147,62 @@ export class PluginsService {
         message: error instanceof Error ? error.message : String(error),
       };
     }
+  }
+
+  getMarketplace(): MarketplacePlugin[] {
+    const autoReplyInstalled = this.pluginLoader.getPlugin('auto-reply') !== undefined;
+
+    return [
+      {
+        id: 'auto-reply',
+        name: 'Auto Reply',
+        version: '1.0.0',
+        description: 'Automatically reply to messages based on keyword rules',
+        author: 'OpenWA Team',
+        type: 'extension',
+        builtIn: true,
+        installed: autoReplyInstalled,
+        tags: ['automation', 'productivity'],
+      },
+      {
+        id: 'openwa-scheduler',
+        name: 'Message Scheduler',
+        version: '1.0.0',
+        description: 'Schedule messages to be sent at specific times',
+        author: 'OpenWA Team',
+        type: 'extension',
+        builtIn: false,
+        installed: false,
+        npmPackage: 'openwa-scheduler-plugin',
+        repositoryUrl: 'https://github.com/openwa/scheduler-plugin',
+        tags: ['automation', 'scheduling'],
+      },
+      {
+        id: 'openwa-chatgpt',
+        name: 'ChatGPT Integration',
+        version: '1.0.0',
+        description: 'Connect your WhatsApp to ChatGPT for AI-powered responses',
+        author: 'Community',
+        type: 'extension',
+        builtIn: false,
+        installed: false,
+        npmPackage: 'openwa-chatgpt-plugin',
+        repositoryUrl: 'https://github.com/openwa/chatgpt-plugin',
+        tags: ['ai', 'automation'],
+      },
+      {
+        id: 'openwa-s3-storage',
+        name: 'S3 Storage',
+        version: '1.0.0',
+        description: 'Store media files in Amazon S3 or compatible storage',
+        author: 'OpenWA Team',
+        type: 'storage',
+        builtIn: false,
+        installed: false,
+        npmPackage: 'openwa-s3-plugin',
+        repositoryUrl: 'https://github.com/openwa/s3-plugin',
+        tags: ['storage', 'aws'],
+      },
+    ];
   }
 }

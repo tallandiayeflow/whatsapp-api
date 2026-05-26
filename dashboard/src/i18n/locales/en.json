@@ -521,6 +521,14 @@
       "title": "No Plugins Found",
       "description": "Install plugins to extend OpenWA functionality"
     },
+    "marketplace": {
+      "title": "Plugin Marketplace",
+      "builtIn": "Built-in",
+      "installed": "Installed",
+      "viewOnGithub": "View on GitHub",
+      "installWith": "Install with:",
+      "noResults": "No plugins available"
+    },
     "config": {
       "title": "Configure {{name}}",
       "restartNotice": "Changes require server restart to take effect",
@@ -530,6 +538,8 @@
       "sessionDataPath": "Session Data Path",
       "browserArgs": "Browser Arguments",
       "noOptions": "No configuration options available for this plugin",
+      "noSchema": "This plugin has no configurable settings.",
+      "jsonArrayHint": "Enter as JSON array, e.g. [{\"keyword\":\"hello\",\"reply\":\"Hi!\"}]",
       "save": "Save Configuration"
     },
     "toasts": {

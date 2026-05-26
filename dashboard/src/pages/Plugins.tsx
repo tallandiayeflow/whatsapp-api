@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Puzzle,
   Power,
@@ -16,9 +16,11 @@ import {
   Shield,
   Zap,
   X,
+  ShoppingBag,
+  ExternalLink,
 } from 'lucide-react';
 import { pluginsApi } from '../services/api';
-import type { Plugin } from '../services/api';
+import type { Plugin, PluginConfigSchema, MarketplacePlugin } from '../services/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import {
   usePluginsQuery,
@@ -48,6 +50,194 @@ interface EngineConfig {
   browserArgs: string;
 }
 
+// ── Schema-driven field renderer ─────────────────────────────────────────────
+
+interface SchemaFieldProps {
+  propKey: string;
+  propDef: PluginConfigSchema['properties'][string];
+  value: unknown;
+  onChange: (key: string, value: unknown) => void;
+}
+
+function SchemaField({ propKey, propDef, value, onChange }: SchemaFieldProps) {
+  const { t } = useTranslation();
+  const label = propDef.title ?? propKey;
+
+  if (propDef.type === 'boolean') {
+    return (
+      <div className="form-group toggle-group">
+        <div className="toggle-info">
+          <label>{label}</label>
+          {propDef.description && <small>{propDef.description}</small>}
+        </div>
+        <label className="toggle-switch">
+          <input
+            type="checkbox"
+            checked={value === true}
+            onChange={e => onChange(propKey, e.target.checked)}
+          />
+          <span className="toggle-slider"></span>
+        </label>
+      </div>
+    );
+  }
+
+  if (propDef.type === 'array') {
+    const textValue = typeof value === 'string' ? value : JSON.stringify(value ?? [], null, 2);
+    return (
+      <div className="form-group">
+        <label>{label}</label>
+        <textarea
+          rows={4}
+          value={textValue}
+          onChange={e => onChange(propKey, e.target.value)}
+          style={{ width: '100%', boxSizing: 'border-box', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-light)', resize: 'vertical', fontFamily: 'monospace', fontSize: '0.875rem' }}
+        />
+        {propDef.description && <small>{propDef.description}</small>}
+        <small style={{ color: 'var(--text-muted)', display: 'block', marginTop: '0.25rem' }}>{t('plugins.config.jsonArrayHint')}</small>
+      </div>
+    );
+  }
+
+  if (propDef.type === 'number') {
+    return (
+      <div className="form-group">
+        <label>{label}</label>
+        <input
+          type="number"
+          value={typeof value === 'number' ? value : ''}
+          onChange={e => onChange(propKey, e.target.valueAsNumber)}
+        />
+        {propDef.description && <small style={{ color: 'var(--text-muted)', display: 'block', marginTop: '0.25rem' }}>{propDef.description}</small>}
+      </div>
+    );
+  }
+
+  // string (default), with secret support
+  return (
+    <div className="form-group">
+      <label>{label}</label>
+      <input
+        type={propDef.secret === true ? 'password' : 'text'}
+        value={typeof value === 'string' ? value : ''}
+        onChange={e => onChange(propKey, e.target.value)}
+      />
+      {propDef.description && <small style={{ color: 'var(--text-muted)', display: 'block', marginTop: '0.25rem' }}>{propDef.description}</small>}
+    </div>
+  );
+}
+
+// ── Marketplace Modal ─────────────────────────────────────────────────────────
+
+interface MarketplaceModalProps {
+  onClose: () => void;
+}
+
+function MarketplaceModal({ onClose }: MarketplaceModalProps) {
+  const { t } = useTranslation();
+  const { data: plugins = [], isLoading, error } = useQuery({
+    queryKey: ['plugins', 'marketplace'],
+    queryFn: pluginsApi.getMarketplace,
+    staleTime: 60_000,
+  });
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal marketplace-modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>{t('plugins.marketplace.title')}</h2>
+          <button className="btn-icon" onClick={onClose}>
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="modal-body">
+          {isLoading && (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}>
+              <Loader2 className="animate-spin" size={32} />
+            </div>
+          )}
+
+          {error && (
+            <div className="error-banner">
+              <AlertCircle size={20} />
+              <span className="error-banner-text">{error instanceof Error ? error.message : String(error)}</span>
+            </div>
+          )}
+
+          {!isLoading && !error && plugins.length === 0 && (
+            <div className="no-config">
+              <Puzzle size={48} style={{ opacity: 0.3 }} />
+              <p>{t('plugins.marketplace.noResults')}</p>
+            </div>
+          )}
+
+          {!isLoading && plugins.length > 0 && (
+            <div className="marketplace-grid">
+              {plugins.map((plugin: MarketplacePlugin) => (
+                <div key={plugin.id} className="marketplace-card">
+                  <div className="marketplace-card-header">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <span className="marketplace-plugin-name">{plugin.name}</span>
+                      <span className="marketplace-version-badge">v{plugin.version}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
+                      {plugin.installed && (
+                        <span className="marketplace-badge installed">{t('plugins.marketplace.installed')}</span>
+                      )}
+                      {plugin.builtIn && (
+                        <span className="marketplace-badge builtin">{t('plugins.marketplace.builtIn')}</span>
+                      )}
+                      <span className="marketplace-badge type">{plugin.type}</span>
+                    </div>
+                  </div>
+
+                  <div className="marketplace-card-body">
+                    <p className="marketplace-description">{plugin.description}</p>
+
+                    <div className="marketplace-meta">
+                      <span className="marketplace-author">by {plugin.author}</span>
+                    </div>
+
+                    {plugin.tags.length > 0 && (
+                      <div className="marketplace-tags">
+                        {plugin.tags.map(tag => (
+                          <span key={tag} className="marketplace-tag">{tag}</span>
+                        ))}
+                      </div>
+                    )}
+
+                    {plugin.repositoryUrl && (
+                      <a
+                        href={plugin.repositoryUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="marketplace-github-link"
+                      >
+                        <ExternalLink size={14} />
+                        {t('plugins.marketplace.viewOnGithub')}
+                      </a>
+                    )}
+
+                    {!plugin.installed && !plugin.builtIn && plugin.npmPackage && (
+                      <div className="marketplace-install-hint">
+                        <span className="marketplace-install-label">{t('plugins.marketplace.installWith')}</span>
+                        <code className="marketplace-install-code">npm install {plugin.npmPackage}</code>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Page ─────────────────────────────────────────────────────────────────
+
 export default function Plugins() {
   const { t } = useTranslation();
   useDocumentTitle(t('plugins.title'));
@@ -70,7 +260,10 @@ export default function Plugins() {
     sessionDataPath: '/data/sessions',
     browserArgs: '--no-sandbox --disable-gpu',
   });
+  const [genericConfig, setGenericConfig] = useState<Record<string, unknown>>({});
   const [savingConfig, setSavingConfig] = useState(false);
+
+  const [showMarketplace, setShowMarketplace] = useState(false);
 
   const refetchAll = () => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.plugins });
@@ -112,12 +305,36 @@ export default function Plugins() {
 
   const handleOpenConfig = (plugin: Plugin) => {
     setConfigPlugin(plugin);
+    // Pre-populate genericConfig from existing plugin.config
+    setGenericConfig({ ...plugin.config });
     setShowConfigModal(true);
   };
 
+  const handleGenericConfigChange = (key: string, value: unknown) => {
+    setGenericConfig(prev => ({ ...prev, [key]: value }));
+  };
+
   const handleSaveConfig = async () => {
+    if (!configPlugin) return;
     setSavingConfig(true);
     try {
+      if (configPlugin.type !== 'engine' && configPlugin.configSchema) {
+        // Parse any textarea JSON arrays before saving
+        const coerced: Record<string, unknown> = {};
+        for (const [key, val] of Object.entries(genericConfig)) {
+          const propDef = configPlugin.configSchema.properties[key];
+          if (propDef?.type === 'array' && typeof val === 'string') {
+            try {
+              coerced[key] = JSON.parse(val) as unknown;
+            } catch {
+              coerced[key] = val;
+            }
+          } else {
+            coerced[key] = val;
+          }
+        }
+        await pluginsApi.updateConfig(configPlugin.id, coerced);
+      }
       toast.success(t('plugins.toasts.savedTitle'), t('plugins.toasts.savedDesc'));
       setShowConfigModal(false);
     } catch (err) {
@@ -146,10 +363,16 @@ export default function Plugins() {
         title={t('plugins.title')}
         subtitle={t('plugins.subtitle')}
         actions={
-          <button className="btn-secondary" onClick={refetchAll}>
-            <RefreshCw size={16} />
-            {t('plugins.refresh')}
-          </button>
+          <>
+            <button className="btn-secondary" onClick={() => setShowMarketplace(true)}>
+              <ShoppingBag size={16} />
+              {t('plugins.marketplace.title')}
+            </button>
+            <button className="btn-secondary" onClick={refetchAll}>
+              <RefreshCw size={16} />
+              {t('plugins.refresh')}
+            </button>
+          </>
         }
       />
 
@@ -327,6 +550,7 @@ export default function Plugins() {
         </div>
       )}
 
+      {/* Config Modal */}
       {showConfigModal && configPlugin && (
         <div className="modal-overlay" onClick={() => setShowConfigModal(false)}>
           <div className="modal config-modal" onClick={e => e.stopPropagation()}>
@@ -391,10 +615,22 @@ export default function Plugins() {
                     </div>
                   </div>
                 </>
+              ) : configPlugin.configSchema ? (
+                <div className="config-form">
+                  {Object.entries(configPlugin.configSchema.properties).map(([key, propDef]) => (
+                    <SchemaField
+                      key={key}
+                      propKey={key}
+                      propDef={propDef}
+                      value={genericConfig[key]}
+                      onChange={handleGenericConfigChange}
+                    />
+                  ))}
+                </div>
               ) : (
                 <div className="no-config">
                   <Settings size={48} style={{ opacity: 0.3 }} />
-                  <p>{t('plugins.config.noOptions')}</p>
+                  <p>{t('plugins.config.noSchema')}</p>
                 </div>
               )}
             </div>
@@ -403,7 +639,7 @@ export default function Plugins() {
               <button className="btn-secondary" onClick={() => setShowConfigModal(false)}>
                 {t('common.cancel')}
               </button>
-              {configPlugin.type === 'engine' && (
+              {(configPlugin.type === 'engine' || configPlugin.configSchema) && (
                 <button className="btn-primary" onClick={handleSaveConfig} disabled={savingConfig}>
                   {savingConfig ? <Loader2 size={16} className="animate-spin" /> : t('plugins.config.save')}
                 </button>
@@ -412,6 +648,9 @@ export default function Plugins() {
           </div>
         </div>
       )}
+
+      {/* Marketplace Modal */}
+      {showMarketplace && <MarketplaceModal onClose={() => setShowMarketplace(false)} />}
     </div>
   );
 }

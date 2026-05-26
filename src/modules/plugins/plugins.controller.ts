@@ -2,9 +2,12 @@ import { Controller, Get, Post, Put, Param, Body, HttpCode, HttpStatus } from '@
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { PluginsService } from './plugins.service';
 import { PluginDto, PluginConfigDto } from './dto/plugin.dto';
+import { RequireRole } from '../auth/decorators/auth.decorators';
+import { ApiKeyRole } from '../auth/entities/api-key.entity';
 
 @ApiTags('plugins')
 @ApiBearerAuth()
+@RequireRole(ApiKeyRole.VIEWER)
 @Controller('plugins')
 export class PluginsController {
   constructor(private readonly pluginsService: PluginsService) {}
@@ -16,6 +19,13 @@ export class PluginsController {
     return this.pluginsService.findAll();
   }
 
+  @Get('marketplace')
+  @ApiOperation({ summary: 'Browse available plugins in the marketplace' })
+  @ApiResponse({ status: 200, description: 'List of marketplace plugins' })
+  getMarketplace() {
+    return this.pluginsService.getMarketplace();
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get plugin by ID' })
   @ApiResponse({ status: 200, description: 'Plugin details' })
@@ -25,6 +35,7 @@ export class PluginsController {
   }
 
   @Post(':id/enable')
+  @RequireRole(ApiKeyRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Enable a plugin' })
   @ApiResponse({ status: 200, description: 'Plugin enabled successfully' })
@@ -33,6 +44,7 @@ export class PluginsController {
   }
 
   @Post(':id/disable')
+  @RequireRole(ApiKeyRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Disable a plugin' })
   @ApiResponse({ status: 200, description: 'Plugin disabled successfully' })
@@ -41,6 +53,7 @@ export class PluginsController {
   }
 
   @Put(':id/config')
+  @RequireRole(ApiKeyRole.ADMIN)
   @ApiOperation({ summary: 'Update plugin configuration' })
   @ApiResponse({ status: 200, description: 'Plugin configuration updated' })
   updateConfig(@Param('id') id: string, @Body() configDto: PluginConfigDto): { success: boolean; message: string } {

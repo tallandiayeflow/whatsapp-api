@@ -521,6 +521,14 @@
       "title": "לא נמצאו תוספים",
       "description": "ניתן להתקין תוספים כדי להרחיב את היכולות של OpenWA"
     },
+    "marketplace": {
+      "title": "חנות תוספים",
+      "builtIn": "מובנה",
+      "installed": "מותקן",
+      "viewOnGithub": "צפה ב-GitHub",
+      "installWith": "התקנה עם:",
+      "noResults": "אין תוספים זמינים"
+    },
     "config": {
       "title": "הגדרת {{name}}",
       "restartNotice": "השינויים דורשים אתחול שרת כדי להיכנס לתוקף",
@@ -530,6 +538,8 @@
       "sessionDataPath": "נתיב נתוני Session",
       "browserArgs": "ארגומנטים של הדפדפן",
       "noOptions": "אין אפשרויות הגדרה זמינות עבור תוסף זה",
+      "noSchema": "לתוסף זה אין הגדרות ניתנות לשינוי.",
+      "jsonArrayHint": "הזן כמערך JSON, לדוגמה: [{\"keyword\":\"שלום\",\"reply\":\"היי!\"}]",
       "save": "שמירת תצורה"
     },
     "toasts": {

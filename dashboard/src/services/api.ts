@@ -432,6 +432,19 @@ export const statsApi = {
 // Plugin Types
 // =============================================================================
 
+export interface PluginConfigSchema {
+  type: 'object';
+  properties: Record<string, {
+    type: 'string' | 'number' | 'boolean' | 'array' | 'object';
+    title?: string;
+    description?: string;
+    default?: unknown;
+    enum?: unknown[];
+    required?: boolean;
+    secret?: boolean;
+  }>;
+}
+
 export interface Plugin {
   id: string;
   name: string;
@@ -441,11 +454,26 @@ export interface Plugin {
   author?: string;
   status: 'installed' | 'enabled' | 'disabled' | 'error';
   config: Record<string, unknown>;
+  configSchema?: PluginConfigSchema;
   builtIn: boolean;
   provides: string[];
   loadedAt?: string;
   enabledAt?: string;
   error?: string;
+}
+
+export interface MarketplacePlugin {
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  author: string;
+  type: string;
+  builtIn: boolean;
+  installed: boolean;
+  npmPackage?: string;
+  repositoryUrl?: string;
+  tags: string[];
 }
 
 export interface Engine {
@@ -478,4 +506,5 @@ export const pluginsApi = {
   healthCheck: (id: string) => request<{ healthy: boolean; message?: string }>(`/plugins/${id}/health`),
   getEngines: () => request<Engine[]>('/infra/engines'),
   getCurrentEngine: () => request<{ engineType: string }>('/infra/engines/current'),
+  getMarketplace: () => request<MarketplacePlugin[]>('/plugins/marketplace'),
 };
