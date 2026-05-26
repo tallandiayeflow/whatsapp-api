@@ -62,7 +62,7 @@ describe('UserService', () => {
       const result = await service.create({ email: 'bob@test.com', password: 'secret123' });
 
       expect(result.email).toBe('bob@test.com');
-      const createCall = (repository.create as jest.Mock).mock.calls[0][0];
+      const createCall = ((repository.create as jest.Mock).mock.calls as Array<[{ passwordHash: string }]>)[0][0];
       expect(createCall.passwordHash).toBeDefined();
       expect(createCall.passwordHash).not.toBe('secret123');
     });
@@ -70,8 +70,9 @@ describe('UserService', () => {
     it('should throw ConflictException if email already exists', async () => {
       (repository.findOne as jest.Mock).mockResolvedValue(createMockUser());
 
-      await expect(service.create({ email: 'alice@example.com', password: 'pass1234' }))
-        .rejects.toThrow(ConflictException);
+      await expect(service.create({ email: 'alice@example.com', password: 'pass1234' })).rejects.toThrow(
+        ConflictException,
+      );
     });
   });
 
@@ -105,8 +106,8 @@ describe('UserService', () => {
     it('should update email and role', async () => {
       const user = createMockUser();
       (repository.findOne as jest.Mock)
-        .mockResolvedValueOnce(user)   // first call: findOne(id)
-        .mockResolvedValueOnce(null);  // second call: duplicate email check
+        .mockResolvedValueOnce(user) // first call: findOne(id)
+        .mockResolvedValueOnce(null); // second call: duplicate email check
       (repository.save as jest.Mock).mockImplementation(u => Promise.resolve(u));
 
       const result = await service.update('user-uuid-1', { email: 'new@test.com', role: ApiKeyRole.VIEWER });
@@ -142,23 +143,26 @@ describe('UserService', () => {
       const user = createMockUser();
       (repository.findOne as jest.Mock).mockResolvedValue(user);
 
-      await expect(service.login({ email: 'alice@example.com', password: 'wrong' }))
-        .rejects.toThrow(UnauthorizedException);
+      await expect(service.login({ email: 'alice@example.com', password: 'wrong' })).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should throw UnauthorizedException if user not found', async () => {
       (repository.findOne as jest.Mock).mockResolvedValue(null);
 
-      await expect(service.login({ email: 'nobody@test.com', password: 'pass' }))
-        .rejects.toThrow(UnauthorizedException);
+      await expect(service.login({ email: 'nobody@test.com', password: 'pass' })).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should throw UnauthorizedException if user is inactive', async () => {
       const user = createMockUser({ isActive: false });
       (repository.findOne as jest.Mock).mockResolvedValue(user);
 
-      await expect(service.login({ email: 'alice@example.com', password: 'password123' }))
-        .rejects.toThrow(UnauthorizedException);
+      await expect(service.login({ email: 'alice@example.com', password: 'password123' })).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 
@@ -170,7 +174,7 @@ describe('UserService', () => {
 
       await service.changePassword('user-uuid-1', 'password123', 'newpassword99');
 
-      const saveCall = (repository.save as jest.Mock).mock.calls[0][0];
+      const saveCall = ((repository.save as jest.Mock).mock.calls as Array<[{ passwordHash: string }]>)[0][0];
       const matches = await bcrypt.compare('newpassword99', saveCall.passwordHash);
       expect(matches).toBe(true);
     });
@@ -179,8 +183,9 @@ describe('UserService', () => {
       const user = createMockUser();
       (repository.findOne as jest.Mock).mockResolvedValue(user);
 
-      await expect(service.changePassword('user-uuid-1', 'wrongpass', 'newpassword99'))
-        .rejects.toThrow(UnauthorizedException);
+      await expect(service.changePassword('user-uuid-1', 'wrongpass', 'newpassword99')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 

@@ -67,10 +67,7 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
     });
 
     if (sessionsToRestart.length > 0) {
-      await this.sessionRepository.update(
-        { status: In(activeStatuses) },
-        { status: SessionStatus.DISCONNECTED },
-      );
+      await this.sessionRepository.update({ status: In(activeStatuses) }, { status: SessionStatus.DISCONNECTED });
       this.logger.log(`Reset ${sessionsToRestart.length} session(s) to disconnected on startup`, {
         action: 'startup_reset',
         affected: sessionsToRestart.length,
@@ -369,9 +366,9 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
             }
 
             // Dispatch to webhooks with potentially modified message
-            void this.webhookService.dispatch(id, 'message.received', finalMessage as Record<string, unknown>);
+            void this.webhookService.dispatch(id, 'message.received', finalMessage);
             // Emit real-time event to WebSocket clients
-            this.eventsGateway.emitMessage(id, finalMessage as Record<string, unknown>);
+            this.eventsGateway.emitMessage(id, finalMessage);
           });
       },
       onDisconnected: (reason: string): void => {
@@ -421,11 +418,15 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
 
     // maxAttempts=0 means unlimited; >0 means stop after that many attempts
     if (state.maxAttempts > 0 && state.attempts >= state.maxAttempts) {
-      this.logger.error(`Max reconnect attempts (${state.maxAttempts}) reached for session: ${session.name}`, undefined, {
-        sessionId: id,
-        attempts: state.attempts,
-        action: 'reconnect_failed',
-      });
+      this.logger.error(
+        `Max reconnect attempts (${state.maxAttempts}) reached for session: ${session.name}`,
+        undefined,
+        {
+          sessionId: id,
+          attempts: state.attempts,
+          action: 'reconnect_failed',
+        },
+      );
       return;
     }
 
@@ -435,15 +436,12 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
     state.attempts++;
 
     const limitLabel = state.maxAttempts > 0 ? `/${state.maxAttempts}` : ' (unlimited)';
-    this.logger.log(
-      `Scheduling reconnect attempt ${state.attempts}${limitLabel} in ${Math.round(delay / 1000)}s`,
-      {
-        sessionId: id,
-        attempt: state.attempts,
-        delayMs: delay,
-        action: 'reconnect_scheduled',
-      },
-    );
+    this.logger.log(`Scheduling reconnect attempt ${state.attempts}${limitLabel} in ${Math.round(delay / 1000)}s`, {
+      sessionId: id,
+      attempt: state.attempts,
+      delayMs: delay,
+      action: 'reconnect_scheduled',
+    });
 
     state.timer = setTimeout(() => {
       void this.executeReconnect(id, session, state);

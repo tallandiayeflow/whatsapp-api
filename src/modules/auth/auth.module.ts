@@ -23,8 +23,7 @@ import { ApiKeyGuard } from './guards/api-key.guard';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret: config.get<string>('jwt.secret'),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        signOptions: { expiresIn: (config.get<string>('jwt.expiresIn') || '1d') as any },
+        signOptions: { expiresIn: config.get<string>('jwt.expiresIn') || '1d' },
       }),
     }),
   ],

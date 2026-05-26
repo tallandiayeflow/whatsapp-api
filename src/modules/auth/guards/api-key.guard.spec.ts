@@ -133,9 +133,10 @@ describe('ApiKeyGuard', () => {
 
       await guard.canActivate(ctx);
 
-      expect((req as any).apiKey.role).toBe(ApiKeyRole.ADMIN);
-      expect((req as any).apiKey.id).toBe('user-1');
-      expect((req as any).user.sub).toBe('user-1');
+      const typedReq = req as unknown as { apiKey: { role: ApiKeyRole; id: string }; user: { sub: string } };
+      expect(typedReq.apiKey.role).toBe(ApiKeyRole.ADMIN);
+      expect(typedReq.apiKey.id).toBe('user-1');
+      expect(typedReq.user.sub).toBe('user-1');
     });
 
     it('should fall back to API key validation when Bearer token is not a JWT', async () => {
@@ -153,7 +154,10 @@ describe('ApiKeyGuard', () => {
     it('should throw UnauthorizedException when JWT user is deactivated', async () => {
       const payload = { sub: 'user-1', email: 'a@b.com', role: ApiKeyRole.ADMIN };
       jwtService.verifyAsync.mockResolvedValue(payload);
-      userService.findOne.mockResolvedValue({ isActive: false, role: ApiKeyRole.ADMIN } as any);
+      userService.findOne.mockResolvedValue({
+        isActive: false,
+        role: ApiKeyRole.ADMIN,
+      } as unknown as import('../entities/user.entity').User);
       const ctx = makeContext({ authorization: 'Bearer valid.jwt.token' });
 
       await expect(guard.canActivate(ctx)).rejects.toThrow(UnauthorizedException);
@@ -171,9 +175,7 @@ describe('ApiKeyGuard', () => {
 
   describe('public routes', () => {
     it('should bypass auth for @Public() routes', async () => {
-      (reflector.getAllAndOverride as jest.Mock).mockImplementation((key) =>
-        key === 'isPublic' ? true : undefined,
-      );
+      (reflector.getAllAndOverride as jest.Mock).mockImplementation(key => (key === 'isPublic' ? true : undefined));
       const ctx = makeContext({});
 
       const result = await guard.canActivate(ctx);
@@ -196,7 +198,7 @@ describe('ApiKeyGuard', () => {
       const apiKey = createMockApiKey(ApiKeyRole.VIEWER);
       authService.validateApiKey.mockResolvedValue(apiKey);
       authService.hasPermission.mockReturnValue(false);
-      (reflector.getAllAndOverride as jest.Mock).mockImplementation((key) =>
+      (reflector.getAllAndOverride as jest.Mock).mockImplementation(key =>
         key === 'requiredRole' ? ApiKeyRole.ADMIN : undefined,
       );
       const ctx = makeContext({ 'x-api-key': 'viewer-key' });

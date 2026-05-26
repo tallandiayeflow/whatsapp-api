@@ -46,7 +46,6 @@ export class StorageService {
       const region = process.env.S3_REGION || s3Config.region || 'us-east-1';
 
       if (endpoint && accessKeyId && secretAccessKey) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         this.s3Client = new S3Client({
           endpoint,
           region,

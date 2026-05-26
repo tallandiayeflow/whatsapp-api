@@ -14,9 +14,7 @@ export class MeController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get own profile (JWT auth only)' })
   @ApiResponse({ status: 200, type: UserResponseDto })
-  async getMe(
-    @Req() request: Request & { user?: { sub: string } },
-  ): Promise<UserResponseDto> {
+  async getMe(@Req() request: Request & { user?: { sub: string } }): Promise<UserResponseDto> {
     if (!request.user?.sub) {
       throw new ForbiddenException('Requires JWT authentication');
     }

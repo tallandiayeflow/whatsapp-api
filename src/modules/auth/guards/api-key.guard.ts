@@ -17,10 +17,7 @@ export class ApiKeyGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const isPublic = this.reflector.getAllAndOverride<boolean>(PUBLIC_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const isPublic = this.reflector.getAllAndOverride<boolean>(PUBLIC_KEY, [context.getHandler(), context.getClass()]);
     if (isPublic) return true;
 
     const request = context.switchToHttp().getRequest<Request & { apiKey?: ApiKey; user?: JwtPayload }>();
@@ -98,7 +95,7 @@ export class ApiKeyGuard implements CanActivate {
       usageCount: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
-    } as ApiKey;
+    };
   }
 
   private checkRole(apiKey: ApiKey, requiredRole: ApiKeyRole | undefined): void {

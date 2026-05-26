@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Loader2, Save, KeyRound, Mail, UserCircle } from 'lucide-react';
+import { Loader2, Save, KeyRound, Mail } from 'lucide-react';
 import { userApi, type UserProfile } from '../services/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { PageHeader } from '../components/PageHeader';
@@ -97,7 +97,6 @@ export function Profile() {
     return (
       <div className="profile-page">
         <PageHeader
-          icon={<UserCircle size={24} />}
           title="Profile"
           subtitle="Manage your account"
         />
@@ -112,7 +111,6 @@ export function Profile() {
     return (
       <div className="profile-page">
         <PageHeader
-          icon={<UserCircle size={24} />}
           title="Profile"
           subtitle="Manage your account"
         />
@@ -124,7 +122,6 @@ export function Profile() {
   return (
     <div className="profile-page">
       <PageHeader
-        icon={<UserCircle size={24} />}
         title="Profile"
         subtitle={profile?.email ?? ''}
       />

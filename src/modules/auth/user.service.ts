@@ -1,10 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  ConflictException,
-  UnauthorizedException,
-  OnModuleInit,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, UnauthorizedException, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
@@ -40,8 +34,7 @@ export class UserService implements OnModuleInit {
     const count = await this.userRepository.count();
     if (count > 0) return;
 
-    const password =
-      process.env.NODE_ENV === 'production' ? randomBytes(12).toString('hex') : 'admin';
+    const password = process.env.NODE_ENV === 'production' ? randomBytes(12).toString('hex') : 'admin';
 
     const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
     const user = this.userRepository.create({
@@ -122,7 +115,8 @@ export class UserService implements OnModuleInit {
 
     const payload: JwtPayload = { sub: user.id, email: user.email, role: user.role };
     const token = await this.jwtService.signAsync(payload);
-    const decoded = this.jwtService.decode(token) as { exp?: number; iat?: number };
+    const raw: unknown = this.jwtService.decode(token);
+    const decoded = raw !== null && typeof raw === 'object' ? (raw as { exp?: number; iat?: number }) : null;
     const expiresIn = decoded?.exp && decoded?.iat ? decoded.exp - decoded.iat : 86400;
 
     this.logger.log(`User login: ${user.email}`, { userId: user.id, action: 'user_login' });
