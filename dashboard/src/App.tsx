@@ -30,17 +30,16 @@ const queryClient = new QueryClient({
 });
 
 function AppContent() {
-  // Initialize from sessionStorage to avoid setState in effect
   const savedKey = sessionStorage.getItem('openwa_api_key');
-  const [isAuthenticated, setIsAuthenticated] = useState(!!savedKey);
-  const [, setApiKey] = useState(savedKey || '');
+  const savedJwt = sessionStorage.getItem('openwa_jwt');
+
+  const [isAuthenticated, setIsAuthenticated] = useState(!!(savedKey || savedJwt));
   const { setRole, role } = useRole();
 
+  // API key login (existing flow)
   const handleLogin = async (key: string) => {
-    setApiKey(key);
     sessionStorage.setItem('openwa_api_key', key);
 
-    // Fetch the role from API
     try {
       const response = await fetch(`${API_BASE_URL}/auth/validate`, {
         method: 'POST',
@@ -51,38 +50,60 @@ function AppContent() {
         setRole(data.role as UserRole);
       }
     } catch {
-      // Default to viewer if we can't fetch role
       setRole('viewer');
     }
 
     setIsAuthenticated(true);
   };
 
-  const handleLogout = () => {
-    setApiKey('');
-    setIsAuthenticated(false);
-    setRole(null);
-    sessionStorage.removeItem('openwa_api_key');
+  // JWT login (email/password flow)
+  const handleLoginJwt = (token: string, userRole: UserRole) => {
+    sessionStorage.setItem('openwa_jwt', token);
+    setRole(userRole);
+    setIsAuthenticated(true);
   };
 
-  // Re-validate and get role on mount if already authenticated
-  useEffect(() => {
-    if (!savedKey) return;
+  const handleLogout = () => {
+    sessionStorage.removeItem('openwa_api_key');
+    sessionStorage.removeItem('openwa_jwt');
+    setIsAuthenticated(false);
+    setRole(null);
+  };
 
-    fetch(`${API_BASE_URL}/auth/validate`, {
-      method: 'POST',
-      headers: { 'X-API-Key': savedKey },
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.valid && data.role) {
-          setRole(data.role as UserRole);
-        }
+  // Re-validate on mount if already authenticated
+  useEffect(() => {
+    const jwt = sessionStorage.getItem('openwa_jwt');
+    const apiKey = sessionStorage.getItem('openwa_api_key');
+
+    if (jwt) {
+      fetch(`${API_BASE_URL}/auth/validate`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${jwt}` },
       })
-      .catch(() => {
-        // Keep existing role from localStorage if validation fails
-      });
-  }, [savedKey, setRole]);
+        .then(res => res.json())
+        .then(data => {
+          if (data.valid && data.role) {
+            setRole(data.role as UserRole);
+          } else {
+            sessionStorage.removeItem('openwa_jwt');
+            setIsAuthenticated(false);
+          }
+        })
+        .catch(() => {});
+    } else if (apiKey) {
+      fetch(`${API_BASE_URL}/auth/validate`, {
+        method: 'POST',
+        headers: { 'X-API-Key': apiKey },
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.valid && data.role) {
+            setRole(data.role as UserRole);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [setRole]);
 
   const loadingFallback = (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
@@ -91,26 +112,30 @@ function AppContent() {
   );
 
   if (!isAuthenticated) {
-    return <Suspense fallback={loadingFallback}><Login onLogin={handleLogin} /></Suspense>;
+    return (
+      <Suspense fallback={loadingFallback}>
+        <Login onLogin={handleLogin} onLoginJwt={handleLoginJwt} />
+      </Suspense>
+    );
   }
 
   return (
     <ToastProvider>
       <BrowserRouter>
         <Suspense fallback={loadingFallback}>
-        <Routes>
-          <Route path="/" element={<Layout onLogout={handleLogout} userRole={role} />}>
-            <Route index element={<Dashboard />} />
-            <Route path="sessions" element={<Sessions />} />
-            <Route path="webhooks" element={<Webhooks />} />
-            {role === 'admin' && <Route path="api-keys" element={<ApiKeys />} />}
-            <Route path="logs" element={<Logs />} />
-            <Route path="message-tester" element={<MessageTester />} />
-            <Route path="infrastructure" element={<Infrastructure />} />
-            {role === 'admin' && <Route path="plugins" element={<Plugins />} />}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Route>
-        </Routes>
+          <Routes>
+            <Route path="/" element={<Layout onLogout={handleLogout} userRole={role} />}>
+              <Route index element={<Dashboard />} />
+              <Route path="sessions" element={<Sessions />} />
+              <Route path="webhooks" element={<Webhooks />} />
+              {role === 'admin' && <Route path="api-keys" element={<ApiKeys />} />}
+              <Route path="logs" element={<Logs />} />
+              <Route path="message-tester" element={<MessageTester />} />
+              <Route path="infrastructure" element={<Infrastructure />} />
+              {role === 'admin' && <Route path="plugins" element={<Plugins />} />}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Route>
+          </Routes>
         </Suspense>
       </BrowserRouter>
     </ToastProvider>
