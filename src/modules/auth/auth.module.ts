@@ -10,6 +10,7 @@ import { AuthService } from './auth.service';
 import { UserService } from './user.service';
 import { AuthController } from './auth.controller';
 import { AuthValidateController } from './auth-validate.controller';
+import { MeController } from './me.controller';
 import { UserController } from './user.controller';
 import { ApiKeyGuard } from './guards/api-key.guard';
 
@@ -27,7 +28,7 @@ import { ApiKeyGuard } from './guards/api-key.guard';
       }),
     }),
   ],
-  controllers: [AuthController, AuthValidateController, UserController],
+  controllers: [AuthController, AuthValidateController, MeController, UserController],
   providers: [
     AuthService,
     UserService,
