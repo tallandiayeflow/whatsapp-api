@@ -4,7 +4,7 @@ import { ApiKeyRole } from '../entities/api-key.entity';
 
 export class CreateUserDto {
   @ApiProperty({ example: 'alice@example.com' })
-  @IsEmail()
+  @IsEmail({ require_tld: false })
   email: string;
 
   @ApiProperty({ minLength: 8 })
@@ -21,7 +21,7 @@ export class CreateUserDto {
 export class UpdateUserDto {
   @ApiPropertyOptional({ example: 'alice@example.com' })
   @IsOptional()
-  @IsEmail()
+  @IsEmail({ require_tld: false })
   email?: string;
 
   @ApiPropertyOptional({ enum: ApiKeyRole })
@@ -49,7 +49,7 @@ export class ChangePasswordDto {
 
 export class LoginDto {
   @ApiProperty({ example: 'admin@localhost' })
-  @IsEmail()
+  @IsEmail({ require_tld: false })
   email: string;
 
   @ApiProperty()
