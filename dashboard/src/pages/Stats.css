@@ -330,12 +330,50 @@
 
   .stats-grid-4,
   .stats-grid-3 {
-    grid-template-columns: 1fr;
-    gap: 1rem;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .stats-chart-card {
+    padding: 1rem;
+  }
+
+  .stats-period-selector {
+    gap: 0.25rem;
+  }
+
+  .stats-period-btn {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.8125rem;
+  }
+
+  .session-activity-table {
+    font-size: 0.8125rem;
   }
 
   .session-activity-table thead th:last-child,
   .session-activity-table tbody td:last-child {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-page { padding: 0.75rem; }
+
+  .stats-grid-4,
+  .stats-grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-value { font-size: 1.5rem; }
+
+  .session-activity-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .session-activity-table thead th:nth-child(3),
+  .session-activity-table tbody td:nth-child(3) {
     display: none;
   }
 }

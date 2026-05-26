@@ -567,3 +567,22 @@
     justify-content: center;
   }
 }
+
+@media (max-width: 480px) {
+  .infrastructure-page { padding: 0.75rem; }
+
+  .infra-card {
+    padding: 1rem;
+  }
+
+  .proxy-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .proxy-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

@@ -263,6 +263,7 @@ export function Stats() {
               <Loader2 className="animate-spin" size={24} />
             </div>
           ) : (
+            <div className="session-activity-table-wrapper">
             <table className="session-activity-table">
               <thead>
                 <tr>
@@ -290,6 +291,7 @@ export function Stats() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       )}

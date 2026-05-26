@@ -109,12 +109,19 @@
 
 .sidebar-nav {
   flex: 1;
+  min-height: 0; /* allows flex child to shrink and scroll */
   padding: 1rem 0.75rem;
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
   overflow-y: auto;
+  /* smooth scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
 }
+.sidebar-nav::-webkit-scrollbar { width: 4px; }
+.sidebar-nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+.sidebar-nav::-webkit-scrollbar-track { background: transparent; }
 
 .sidebar.collapsed .sidebar-nav {
   padding: 1rem 0.5rem;
@@ -340,7 +347,8 @@
     margin-left: 0;
     width: 100%;
     padding-top: 56px;
-    height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
@@ -348,6 +356,13 @@
   .collapse-toggle {
     display: none;
   }
+}
+
+/* ==================== Tablet breakpoint (768-1024px) ==================== */
+@media (max-width: 1024px) and (min-width: 768px) {
+  .sidebar { width: 200px; }
+  .main-content { margin-left: 200px; width: calc(100% - 200px); }
+  .main-content.expanded { margin-left: 72px; width: calc(100% - 72px); }
 }
 
 /* ==================== RTL support ==================== */

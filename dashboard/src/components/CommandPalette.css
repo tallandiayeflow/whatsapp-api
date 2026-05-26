@@ -157,6 +157,31 @@
   margin-right: 0.25rem;
 }
 
+/* Responsive */
+@media (max-width: 640px) {
+  .cmd-overlay {
+    align-items: flex-end;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .cmd-modal {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 20px 20px 0 0;
+    max-height: 80dvh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .cmd-list {
+    flex: 1;
+    max-height: none;
+  }
+
+  .cmd-footer { display: none; }
+}
+
 /* Dark mode enhancements */
 [data-theme='dark'] .cmd-modal {
   box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);

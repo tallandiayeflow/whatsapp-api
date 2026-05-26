@@ -294,6 +294,47 @@
   }
 }
 
+@media (max-width: 768px) {
+  .webhooks-page {
+    padding: 1rem;
+  }
+
+  .webhooks-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .webhooks-table {
+    min-width: 500px;
+  }
+
+  .webhooks-table .table-row {
+    grid-template-columns: 1fr 120px 100px 70px;
+    font-size: 0.8125rem;
+  }
+
+  .webhooks-table .table-row > *:nth-child(3) {
+    display: none;
+  }
+
+  .modal {
+    width: 95% !important;
+    max-height: 92dvh;
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .webhooks-page { padding: 0.75rem; }
+
+  .webhooks-table .table-row {
+    grid-template-columns: 1fr 90px 70px;
+  }
+  .webhooks-table .table-row > *:nth-child(2) {
+    display: none;
+  }
+}
+
 /* Toast Notification */
 .toast {
   position: fixed;

@@ -141,3 +141,96 @@ button:focus-visible {
   outline-offset: 2px;
   box-shadow: 0 0 0 4px var(--primary-light);
 }
+
+/* ==================== Global responsive ==================== */
+
+/* Prevent any single element from causing horizontal overflow */
+* { max-width: 100%; }
+img, video, canvas, svg { max-width: 100%; }
+
+/* All page wrappers get responsive padding */
+@media (max-width: 768px) {
+  .sessions-page,
+  .webhooks-page,
+  .message-tester,
+  .infrastructure-page,
+  .api-keys-page,
+  .plugins-page,
+  .channels-page,
+  .dashboard,
+  .stats-page,
+  .logs-page {
+    padding: 1rem !important;
+  }
+
+  /* Filters bar: always wrap items on mobile */
+  .filters-bar {
+    flex-wrap: wrap;
+    gap: 0.625rem;
+  }
+  .filters-bar .search-input {
+    max-width: 100%;
+    min-width: 0;
+    flex: 1 1 200px;
+  }
+  .filters-bar .filter-group {
+    flex: 1 1 140px;
+  }
+
+  /* Modals: fit viewport, scroll if tall */
+  .modal,
+  .modal-content,
+  .modal-card {
+    max-height: 90dvh;
+    overflow-y: auto;
+    width: 95% !important;
+  }
+
+  /* Stat/metric cards grid: 2 columns minimum */
+  .stats-grid { gap: 0.75rem; }
+
+  /* Tables that don't already handle mobile: horizontal scroll */
+  .table-container,
+  .logs-table-container,
+  .webhooks-table-container,
+  .keys-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 480px) {
+  .sessions-page,
+  .webhooks-page,
+  .message-tester,
+  .infrastructure-page,
+  .api-keys-page,
+  .plugins-page,
+  .channels-page,
+  .dashboard,
+  .stats-page,
+  .logs-page {
+    padding: 0.75rem !important;
+  }
+
+  /* Single-column filters */
+  .filters-bar {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .filters-bar .search-input,
+  .filters-bar .filter-group {
+    width: 100%;
+    flex: none;
+  }
+
+  /* Buttons in PageHeader: full width */
+  .page-header__actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .page-header__actions > * {
+    flex: 1;
+    justify-content: center;
+  }
+}

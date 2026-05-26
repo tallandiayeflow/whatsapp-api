@@ -321,3 +321,36 @@
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 768px) {
+  .message-tester {
+    padding: 1rem;
+  }
+
+  .compose-panel,
+  .response-panel {
+    padding: 1.25rem;
+  }
+
+  .history-panel {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .message-tester { padding: 0.75rem; }
+
+  .compose-panel,
+  .response-panel {
+    padding: 1rem;
+  }
+
+  .form-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .form-actions > button {
+    width: 100%;
+    justify-content: center;
+  }
+}

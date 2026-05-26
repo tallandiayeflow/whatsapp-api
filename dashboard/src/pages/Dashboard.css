@@ -282,14 +282,20 @@
   }
 
   .stats-grid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .recent-sessions-card {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .table-header,
   .table-row {
     grid-template-columns: 1fr 1fr 1fr;
     font-size: 0.8125rem;
+    min-width: 360px;
   }
 
   .table-header span:nth-child(4),
@@ -297,5 +303,14 @@
   .table-row > *:nth-child(4),
   .table-row > *:nth-child(5) {
     display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard { padding: 0.75rem; }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 0.625rem;
   }
 }
