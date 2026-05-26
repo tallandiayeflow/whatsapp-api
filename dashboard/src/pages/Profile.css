@@ -1,0 +1,132 @@
+.profile-page {
+  padding: 2rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.profile-loading {
+  display: flex;
+  justify-content: center;
+  padding: 4rem 0;
+}
+
+.profile-notice,
+.profile-error {
+  margin-top: 1.5rem;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius, 8px);
+  font-size: 0.9rem;
+}
+
+.profile-notice {
+  background: var(--bg-secondary, #f1f5f9);
+  color: var(--text-secondary, #64748b);
+  border: 1px solid var(--border-color, #e2e8f0);
+}
+
+.profile-error {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.profile-card {
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: var(--radius, 8px);
+  padding: 1.5rem;
+}
+
+.profile-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  color: var(--text-primary, #0f172a);
+}
+
+.profile-card-header h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.profile-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.profile-field label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary, #64748b);
+}
+
+.profile-field input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--input-bg, #fff);
+  color: var(--text-primary, #0f172a);
+  font-size: 0.9rem;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.profile-field input:focus {
+  outline: none;
+  border-color: var(--primary, #6366f1);
+}
+
+.profile-msg {
+  font-size: 0.82rem;
+  margin: 0;
+}
+
+.profile-msg--ok {
+  color: var(--success-color, #16a34a);
+}
+
+.profile-msg--err {
+  color: var(--error-color, #dc2626);
+}
+
+.profile-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 1.1rem;
+  background: var(--primary, #6366f1);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm, 6px);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: opacity 0.15s;
+}
+
+.profile-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.profile-btn:not(:disabled):hover {
+  opacity: 0.9;
+}

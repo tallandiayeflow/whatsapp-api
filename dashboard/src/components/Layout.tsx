@@ -24,7 +24,6 @@ import {
 import { useTheme } from '../hooks/useTheme';
 import { type UserRole } from '../hooks/useRole';
 import { supportedLanguages, type SupportedLanguage } from '../i18n';
-import { ProfileModal } from './ProfileModal';
 import './Layout.css';
 
 interface LayoutProps {
@@ -50,8 +49,6 @@ export function Layout({ onLogout, userRole }: LayoutProps) {
   const { theme, toggleTheme } = useTheme();
   const ThemeIcon = themeIcons[theme];
   const themeLabel = t(`theme.${theme}`);
-  const [showProfile, setShowProfile] = useState(false);
-  // Profile only available when logged in via JWT (not API key)
   const isJwtUser = !!sessionStorage.getItem('openwa_jwt');
 
   const navItems = allNavItems.filter(item => !item.adminOnly || userRole === 'admin');
@@ -174,14 +171,14 @@ export function Layout({ onLogout, userRole }: LayoutProps) {
             {!isCollapsed && <span>{themeLabel}</span>}
           </button>
           {isJwtUser && (
-            <button
-              className="theme-toggle-btn"
-              onClick={() => setShowProfile(true)}
+            <NavLink
+              to="/profile"
+              className={({ isActive }) => `theme-toggle-btn${isActive ? ' active' : ''}`}
               title="My profile"
             >
               <UserCircle size={18} />
               {!isCollapsed && <span>Profile</span>}
-            </button>
+            </NavLink>
           )}
           <button className="logout-btn" onClick={onLogout} title={isCollapsed ? t('common.logout') : undefined}>
             <LogOut size={20} />
@@ -189,7 +186,6 @@ export function Layout({ onLogout, userRole }: LayoutProps) {
           </button>
         </div>
       </aside>
-      {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
 
       <main className={`main-content ${isCollapsed ? 'expanded' : ''} ${isMobile ? 'mobile' : ''}`}>
         <Outlet />
