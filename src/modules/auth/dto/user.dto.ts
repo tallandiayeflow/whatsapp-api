@@ -35,6 +35,12 @@ export class UpdateUserDto {
   isActive?: boolean;
 }
 
+export class UpdateMeDto {
+  @ApiProperty({ example: 'new@example.com' })
+  @IsEmail({ require_tld: false })
+  email: string;
+}
+
 export class ChangePasswordDto {
   @ApiProperty()
   @IsString()

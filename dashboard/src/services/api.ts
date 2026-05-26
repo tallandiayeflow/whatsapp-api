@@ -230,6 +230,33 @@ export const webhookApi = {
 };
 
 // =============================================================================
+// User profile API (JWT auth only)
+// =============================================================================
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  role: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const userApi = {
+  getMe: () => request<UserProfile>('/auth/users/me'),
+  updateMe: (email: string) =>
+    request<UserProfile>('/auth/users/me', {
+      method: 'PUT',
+      body: JSON.stringify({ email }),
+    }),
+  changePassword: (oldPassword: string, newPassword: string) =>
+    request<void>('/auth/users/me/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ oldPassword, newPassword }),
+    }),
+};
+
+// =============================================================================
 // API Key API
 // =============================================================================
 

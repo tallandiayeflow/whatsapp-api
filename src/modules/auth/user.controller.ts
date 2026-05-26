@@ -14,7 +14,7 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { Request } from 'express';
 import { UserService } from './user.service';
-import { CreateUserDto, UpdateUserDto, UserResponseDto, LoginDto, LoginResponseDto, ChangePasswordDto } from './dto/user.dto';
+import { CreateUserDto, UpdateUserDto, UpdateMeDto, UserResponseDto, LoginDto, LoginResponseDto, ChangePasswordDto } from './dto/user.dto';
 import { ApiKey, ApiKeyRole } from './entities/api-key.entity';
 import { Public, RequireRole, CurrentApiKey } from './decorators/auth.decorators';
 
@@ -85,7 +85,36 @@ export class UserController {
     await this.userService.delete(id);
   }
 
-  // ── Change password (authenticated user, JWT-only) ────────────────
+  // ── Self-service profile (JWT-only) ──────────────────────────────
+
+  @Get('users/me')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get own profile (JWT auth only)' })
+  @ApiResponse({ status: 200, type: UserResponseDto })
+  async getMe(
+    @Req() request: Request & { user?: { sub: string } },
+  ): Promise<UserResponseDto> {
+    if (!request.user?.sub) {
+      throw new ForbiddenException('Requires JWT authentication');
+    }
+    const user = await this.userService.findOne(request.user.sub);
+    return this.userService.toResponseDto(user);
+  }
+
+  @Put('users/me')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update own email (JWT auth only)' })
+  @ApiResponse({ status: 200, type: UserResponseDto })
+  async updateMe(
+    @Body() dto: UpdateMeDto,
+    @Req() request: Request & { user?: { sub: string } },
+  ): Promise<UserResponseDto> {
+    if (!request.user?.sub) {
+      throw new ForbiddenException('Requires JWT authentication');
+    }
+    const user = await this.userService.update(request.user.sub, { email: dto.email });
+    return this.userService.toResponseDto(user);
+  }
 
   @Post('users/me/change-password')
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -95,7 +124,6 @@ export class UserController {
     @Body() dto: ChangePasswordDto,
     @Req() request: Request & { apiKey?: ApiKey; user?: { sub: string } },
   ): Promise<void> {
-    // Only available when authenticated via JWT (request.user is set by guard)
     if (!request.user?.sub) {
       throw new ForbiddenException('Password change requires JWT authentication');
     }
