@@ -69,6 +69,7 @@ export interface AuditLog {
   path?: string;
   statusCode?: number;
   errorMessage?: string;
+  metadata?: Record<string, unknown>;
   createdAt: string;
 }
 

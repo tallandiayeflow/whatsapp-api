@@ -142,7 +142,7 @@ function MarketplaceModal({ onClose }: MarketplaceModalProps) {
   });
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" aria-hidden="true" onClick={onClose}>
       <div className="modal marketplace-modal" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h2>{t('plugins.marketplace.title')}</h2>
@@ -552,7 +552,7 @@ export default function Plugins() {
 
       {/* Config Modal */}
       {showConfigModal && configPlugin && (
-        <div className="modal-overlay" onClick={() => setShowConfigModal(false)}>
+        <div className="modal-overlay" aria-hidden="true" onClick={() => setShowConfigModal(false)}>
           <div className="modal config-modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{t('plugins.config.title', { name: configPlugin.name })}</h2>

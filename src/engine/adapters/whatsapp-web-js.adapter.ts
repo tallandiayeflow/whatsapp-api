@@ -900,26 +900,66 @@ export class WhatsAppWebJsAdapter extends EventEmitter implements IWhatsAppEngin
     return [];
   }
 
-  async postTextStatus(_text: string, _options?: TextStatusOptions): Promise<StatusResult> {
-    this.ensureReady();
-    // whatsapp-web.js doesn't have native status posting
-    // This would require using the underlying WhatsApp Web API directly
-    throw new Error('postTextStatus not yet implemented in whatsapp-web.js adapter');
+  private async patchStatusGating(): Promise<void> {
+    await (this.client as any).pupPage.evaluate(() => {
+      try {
+        const utils = (window as any).require('WAWebStatusGatingUtils');
+        if (utils && typeof utils.canCheckStatusRankingPosterGating !== 'function') {
+          utils.canCheckStatusRankingPosterGating = () => false;
+        }
+      } catch {
+        // module not found — nothing to patch
+      }
+    });
   }
 
-  async postImageStatus(_media: MediaInput, _caption?: string): Promise<StatusResult> {
+  async postTextStatus(text: string, options?: TextStatusOptions): Promise<StatusResult> {
     this.ensureReady();
-    throw new Error('postImageStatus not yet implemented in whatsapp-web.js adapter');
+    await this.patchStatusGating();
+    const msg = await this.client!.sendMessage('status@broadcast', text, {
+      backgroundColor: options?.backgroundColor,
+      font: options?.font,
+    } as any);
+    const now = new Date();
+    return {
+      statusId: msg.id._serialized,
+      timestamp: now,
+      expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000),
+    };
   }
 
-  async postVideoStatus(_media: MediaInput, _caption?: string): Promise<StatusResult> {
+  async postImageStatus(media: MediaInput, caption?: string): Promise<StatusResult> {
     this.ensureReady();
-    throw new Error('postVideoStatus not yet implemented in whatsapp-web.js adapter');
+    await this.patchStatusGating();
+    let messageMedia: MessageMedia;
+    if (typeof media.data === 'string') {
+      if (media.data.startsWith('http://') || media.data.startsWith('https://')) {
+        messageMedia = await MessageMedia.fromUrl(media.data);
+      } else {
+        messageMedia = new MessageMedia(media.mimetype, media.data, media.filename);
+      }
+    } else {
+      messageMedia = new MessageMedia(media.mimetype, media.data.toString('base64'), media.filename);
+    }
+    const msg = await this.client!.sendMessage('status@broadcast', messageMedia, { caption } as any);
+    const now = new Date();
+    return {
+      statusId: msg.id._serialized,
+      timestamp: now,
+      expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000),
+    };
   }
 
-  async deleteStatus(_statusId: string): Promise<void> {
+  async postVideoStatus(media: MediaInput, caption?: string): Promise<StatusResult> {
+    return this.postImageStatus(media, caption);
+  }
+
+  async deleteStatus(statusId: string): Promise<void> {
     this.ensureReady();
-    throw new Error('deleteStatus not yet implemented in whatsapp-web.js adapter');
+    const msg = await this.client!.getMessageById(statusId);
+    if (msg) {
+      await msg.delete(true);
+    }
   }
 
   // ========== Catalog (Phase 3) ==========

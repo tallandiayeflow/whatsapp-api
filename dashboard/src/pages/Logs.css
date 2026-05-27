@@ -96,6 +96,68 @@
   outline: none;
 }
 
+/* ── Auto-refresh button ─────────────────────────────────────────────── */
+.auto-refresh-btn {
+  font-size: 0.8125rem;
+  padding: 0.6rem 0.875rem;
+}
+.auto-refresh-btn.active {
+  background: rgba(37, 211, 102, 0.1);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.spin {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Stats bar ───────────────────────────────────────────────────────── */
+.logs-stats-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.logs-stat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  border: none;
+  cursor: default;
+  font-family: inherit;
+}
+button.logs-stat-chip { cursor: pointer; transition: opacity var(--transition-fast); }
+button.logs-stat-chip:hover { opacity: 0.75; }
+.logs-stat-total  { background: var(--bg-white); border: 1px solid var(--border); color: var(--text-secondary); }
+.logs-stat-error  { background: rgba(239,68,68,0.1); color: #dc2626; }
+.logs-stat-warn   { background: rgba(245,158,11,0.12); color: #b45309; }
+.logs-stat-info   { background: rgba(37,211,102,0.1); color: var(--primary); }
+.logs-stat-reset  { background: var(--bg-light); color: var(--text-muted); border: 1px solid var(--border); cursor: pointer; }
+.logs-stat-reset:hover { color: var(--text-primary); }
+
+/* ── Metadata block ──────────────────────────────────────────────────── */
+.expanded-item--full { grid-column: 1 / -1; }
+.expanded-metadata {
+  margin: 0.25rem 0 0;
+  padding: 0.625rem 0.875rem;
+  background: var(--bg-light);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
 .logs-table-container {
   background: var(--bg-white);
   border-radius: 12px;

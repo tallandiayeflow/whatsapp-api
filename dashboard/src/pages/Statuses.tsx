@@ -254,7 +254,7 @@ export function Statuses() {
 
       {/* Post status modal */}
       {showPostModal && (
-        <div className="modal-overlay" onClick={resetModal}>
+        <div className="modal-overlay" aria-hidden="true" onClick={resetModal}>
           <div className="modal modal--status" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{t('statuses.postTitle', { defaultValue: 'Post a Status' })}</h2>
@@ -373,7 +373,7 @@ export function Statuses() {
 
       {/* Delete confirm modal */}
       {deleteTarget && (
-        <div className="modal-overlay" onClick={() => setDeleteTarget(null)}>
+        <div className="modal-overlay" aria-hidden="true" onClick={() => setDeleteTarget(null)}>
           <div className="modal modal--sm" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{t('statuses.deleteTitle', { defaultValue: 'Delete Status' })}</h2>

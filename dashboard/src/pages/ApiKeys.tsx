@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 import { Trans, useTranslation } from 'react-i18next';
 import {
   useReactTable,
@@ -7,7 +8,7 @@ import {
   createColumnHelper,
   type VisibilityState,
 } from '@tanstack/react-table';
-import { Plus, Copy, RefreshCw, Trash2, Eye, EyeOff, Loader2, X, Check, KeyRound, AlertTriangle, Link } from 'lucide-react';
+import { Plus, Copy, RefreshCw, Trash2, Eye, EyeOff, Loader2, X, Check, KeyRound, AlertTriangle, Link, Clock } from 'lucide-react';
 import type { ApiKey } from '../services/api';
 import { sessionApi, apiKeyApi } from '../services/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
@@ -42,7 +43,7 @@ export function ApiKeys() {
   const queryClient = useQueryClient();
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set());
   const [showModal, setShowModal] = useState(false);
-  const [newKey, setNewKey] = useState({ name: '', role: 'operator', defaultSessionId: '' });
+  const [newKey, setNewKey] = useState({ name: '', role: 'operator', defaultSessionId: '', expiresAt: '' });
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [sessions, setSessions] = useState<{ id: string; name: string; status: string }[]>([]);
   const [linkTarget, setLinkTarget] = useState<{ key: ApiKey; sessionId: string } | null>(null);
@@ -57,12 +58,42 @@ export function ApiKeys() {
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 
   useEffect(() => {
-    setColumnVisibility({ key: !isSmall, lastUsed: !isMobile });
+    setColumnVisibility({ key: !isSmall, lastUsed: !isMobile, expiry: !isSmall });
   }, [isMobile, isSmall]);
 
   useEffect(() => {
     sessionApi.list().then(setSessions).catch(() => {});
   }, []);
+
+  const closeAllModals = useCallback(() => {
+    setShowModal(false);
+    setConfirmAction(null);
+    setLinkTarget(null);
+  }, []);
+  useEscapeKey(closeAllModals, !!(showModal || confirmAction || linkTarget));
+
+  const addDays = (days: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    return d.toISOString().split('T')[0];
+  };
+
+  const addYears = (years: number) => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() + years);
+    return d.toISOString().split('T')[0];
+  };
+
+  const getExpiryStatus = (expiresAt?: string) => {
+    if (!expiresAt) return null;
+    const exp = new Date(expiresAt);
+    const now = new Date();
+    const diffMs = exp.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    if (diffMs < 0) return { label: 'Expirée', type: 'expired' as const };
+    if (diffDays <= 7) return { label: `${diffDays}j restants`, type: 'warning' as const };
+    return { label: `${diffDays}j restants`, type: 'ok' as const };
+  };
 
   const handleCreate = async () => {
     if (!newKey.name) return;
@@ -71,9 +102,10 @@ export function ApiKeys() {
         name: newKey.name,
         role: newKey.role,
         ...(newKey.defaultSessionId ? { defaultSessionId: newKey.defaultSessionId } : {}),
+        ...(newKey.expiresAt ? { expiresAt: new Date(newKey.expiresAt).toISOString() } : {}),
       });
       setCreatedKey(created.apiKey || null);
-      setNewKey({ name: '', role: 'operator', defaultSessionId: '' });
+      setNewKey({ name: '', role: 'operator', defaultSessionId: '', expiresAt: '' });
     } catch (err) {
       toast.error('Erreur', err instanceof Error ? err.message : 'Impossible de créer la clé');
     }
@@ -172,6 +204,22 @@ export function ApiKeys() {
           </span>
         ),
       }),
+      columnHelper.accessor('expiresAt', {
+        id: 'expiry',
+        header: () => 'Expiration',
+        cell: info => {
+          const val = info.getValue();
+          if (!val) return <span className="expiry-badge expiry-none">Jamais</span>;
+          const status = getExpiryStatus(val);
+          if (!status) return null;
+          return (
+            <span className={`expiry-badge expiry-${status.type}`} title={new Date(val).toLocaleDateString()}>
+              <Clock size={11} />
+              {status.label}
+            </span>
+          );
+        },
+      }),
       columnHelper.accessor('defaultSessionId', {
         id: 'session',
         header: () => 'Session liée',
@@ -204,14 +252,16 @@ export function ApiKeys() {
               <button
                 className="icon-btn"
                 onClick={() => copyToClipboard(apiKey.keyPrefix, apiKey.id)}
-                title="Copy key prefix (full key only shown at creation)"
+                title="Copier le préfixe"
+                aria-label="Copier le préfixe de la clé"
               >
                 {copied === apiKey.id ? <Check size={16} /> : <Copy size={16} />}
               </button>
               <button
                 className="icon-btn"
                 onClick={() => setLinkTarget({ key: apiKey, sessionId: apiKey.defaultSessionId ?? '' })}
-                title="Lier une session WhatsApp"
+                title="Lier une session"
+                aria-label="Lier une session WhatsApp"
               >
                 <Link size={16} />
               </button>
@@ -220,6 +270,7 @@ export function ApiKeys() {
                   className="icon-btn"
                   onClick={() => setConfirmAction({ type: 'revoke', id: apiKey.id, name: apiKey.name })}
                   title={t('apiKeys.actions.revoke')}
+                  aria-label={`${t('apiKeys.actions.revoke')} ${apiKey.name}`}
                 >
                   <RefreshCw size={16} />
                 </button>
@@ -228,6 +279,7 @@ export function ApiKeys() {
                 className="icon-btn danger"
                 onClick={() => setConfirmAction({ type: 'delete', id: apiKey.id, name: apiKey.name })}
                 title={t('apiKeys.actions.delete')}
+                aria-label={`${t('apiKeys.actions.delete')} ${apiKey.name}`}
               >
                 <Trash2 size={16} />
               </button>
@@ -236,7 +288,7 @@ export function ApiKeys() {
         },
       }),
     ],
-    [visibleKeys, copied, t],
+    [visibleKeys, copied, t, sessions],
   );
 
   const table = useReactTable({
@@ -273,13 +325,13 @@ export function ApiKeys() {
 
       {showModal && (
         <div
-          className="modal-overlay"
+          className="modal-overlay" aria-hidden="true"
           onClick={() => {
             setShowModal(false);
             setCreatedKey(null);
           }}
         >
-          <div className="modal" onClick={e => e.stopPropagation()}>
+          <div role="dialog" aria-modal="true" className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{createdKey ? t('apiKeys.createdTitle') : t('apiKeys.modalTitle')}</h2>
               <button
@@ -345,6 +397,40 @@ export function ApiKeys() {
                   <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>
                     Sans session liée : la clé utilisera automatiquement la seule session active.
                   </p>
+                  <label style={{ marginTop: '0.75rem' }}>
+                    Expiration{' '}
+                    <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optionnel)</span>
+                  </label>
+                  <div className="expiry-presets">
+                    {[
+                      { label: '30 jours', fn: () => addDays(30) },
+                      { label: '90 jours', fn: () => addDays(90) },
+                      { label: '1 an', fn: () => addYears(1) },
+                    ].map(p => (
+                      <button
+                        key={p.label}
+                        type="button"
+                        className={`expiry-preset-btn${newKey.expiresAt === p.fn() ? ' active' : ''}`}
+                        onClick={() => setNewKey({ ...newKey, expiresAt: p.fn() })}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      className={`expiry-preset-btn${newKey.expiresAt === '' ? ' active' : ''}`}
+                      onClick={() => setNewKey({ ...newKey, expiresAt: '' })}
+                    >
+                      Jamais
+                    </button>
+                  </div>
+                  <input
+                    type="date"
+                    value={newKey.expiresAt}
+                    min={new Date().toISOString().split('T')[0]}
+                    onChange={e => setNewKey({ ...newKey, expiresAt: e.target.value })}
+                    style={{ marginTop: '0.5rem' }}
+                  />
                 </>
               )}
             </div>
@@ -416,8 +502,8 @@ export function ApiKeys() {
       </div>
 
       {confirmAction && (
-        <div className="modal-overlay" onClick={() => setConfirmAction(null)}>
-          <div className="modal confirm-modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay" aria-hidden="true" onClick={() => setConfirmAction(null)}>
+          <div role="dialog" aria-modal="true" className="modal confirm-modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2>
                 {confirmAction.type === 'delete'
@@ -459,8 +545,8 @@ export function ApiKeys() {
       )}
 
       {linkTarget && (
-        <div className="modal-overlay" onClick={() => setLinkTarget(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay" aria-hidden="true" onClick={() => setLinkTarget(null)}>
+          <div role="dialog" aria-modal="true" className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2>Lier une session WhatsApp</h2>
               <button className="btn-icon" onClick={() => setLinkTarget(null)}>

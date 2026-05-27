@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { CommandPalette } from './CommandPalette';
 import { useTheme } from '../hooks/useTheme';
+import { useRealtimeEvents } from '../hooks/useRealtimeEvents';
 import { type UserRole } from '../hooks/useRole';
 import { supportedLanguages, type SupportedLanguage } from '../i18n';
 import './Layout.css';
@@ -59,6 +60,7 @@ const themeIcons = { light: Sun, dark: Moon, system: Monitor };
 export function Layout({ onLogout, userRole }: LayoutProps) {
   const { t, i18n } = useTranslation();
   const { theme, toggleTheme } = useTheme();
+  useRealtimeEvents();
   const ThemeIcon = themeIcons[theme];
   const themeLabel = t(`theme.${theme}`);
   const isJwtUser = !!sessionStorage.getItem('openwa_jwt');
@@ -116,6 +118,7 @@ export function Layout({ onLogout, userRole }: LayoutProps) {
 
   return (
     <div className="layout">
+      <a href="#main-content" className="skip-link">Aller au contenu</a>
       {isMobile && (
         <header className="mobile-header">
           <button className="mobile-menu-btn" onClick={toggleMobile} aria-label={t('common.expand')}>
@@ -223,7 +226,7 @@ export function Layout({ onLogout, userRole }: LayoutProps) {
         </div>
       </aside>
 
-      <main className={`main-content ${isCollapsed ? 'expanded' : ''} ${isMobile ? 'mobile' : ''}`}>
+      <main id="main-content" className={`main-content ${isCollapsed ? 'expanded' : ''} ${isMobile ? 'mobile' : ''}`}>
         <Outlet />
       </main>
 

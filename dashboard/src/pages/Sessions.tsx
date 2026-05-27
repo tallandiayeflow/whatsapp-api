@@ -329,8 +329,8 @@ export function Sessions() {
       )}
 
       {showCreateModal && (
-        <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay" aria-hidden="true" onClick={() => setShowCreateModal(false)}>
+          <div role="dialog" aria-modal="true" className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{t('sessions.create.title')}</h2>
               <button className="btn-icon" onClick={() => setShowCreateModal(false)}>
@@ -388,7 +388,7 @@ export function Sessions() {
       )}
 
       {qrData && (
-        <div className="modal-overlay" onClick={() => setQrData(null)}>
+        <div className="modal-overlay" aria-hidden="true" onClick={() => setQrData(null)}>
           <div className="modal qr-modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-title">
@@ -438,8 +438,8 @@ export function Sessions() {
       )}
 
       {selectedSession && (
-        <div className="modal-overlay" onClick={() => setSelectedSession(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay" aria-hidden="true" onClick={() => setSelectedSession(null)}>
+          <div role="dialog" aria-modal="true" className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{t('sessions.details.title')}</h2>
               <button className="btn-icon" onClick={() => setSelectedSession(null)}>
@@ -486,8 +486,8 @@ export function Sessions() {
       )}
 
       {deleteConfirmId && (
-        <div className="modal-overlay" onClick={() => setDeleteConfirmId(null)}>
-          <div className="modal confirm-modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay" aria-hidden="true" onClick={() => setDeleteConfirmId(null)}>
+          <div role="dialog" aria-modal="true" className="modal confirm-modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{t('sessions.delete.title')}</h2>
               <button className="btn-icon" onClick={() => setDeleteConfirmId(null)}>
@@ -517,8 +517,8 @@ export function Sessions() {
       )}
 
       {proxySession && (
-        <div className="modal-overlay" onClick={() => setProxySession(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay" aria-hidden="true" onClick={() => setProxySession(null)}>
+          <div role="dialog" aria-modal="true" className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{t('sessions.proxy.title')}</h2>
               <button className="btn-icon" onClick={() => setProxySession(null)}>

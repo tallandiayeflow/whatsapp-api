@@ -180,8 +180,8 @@ export function Channels() {
 
       {/* Subscribe modal */}
       {showSubscribeModal && (
-        <div className="modal-overlay" onClick={() => setShowSubscribeModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay" aria-hidden="true" onClick={() => setShowSubscribeModal(false)}>
+          <div role="dialog" aria-modal="true" className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{t('channels.subscribeTitle', 'S\'abonner à un channel')}</h2>
               <button className="btn-close" onClick={() => setShowSubscribeModal(false)}>
@@ -220,7 +220,7 @@ export function Channels() {
 
       {/* Confirm unsubscribe modal */}
       {unsubscribeTarget && (
-        <div className="modal-overlay" onClick={() => setUnsubscribeTarget(null)}>
+        <div className="modal-overlay" aria-hidden="true" onClick={() => setUnsubscribeTarget(null)}>
           <div className="modal modal-sm" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{t('channels.confirmUnsubscribe', 'Confirmer le désabonnement')}</h2>

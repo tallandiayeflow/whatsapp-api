@@ -688,8 +688,8 @@ export function Groups() {
 
       {/* Create Group Modal */}
       {showCreateModal && (
-        <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay" aria-hidden="true" onClick={() => setShowCreateModal(false)}>
+          <div role="dialog" aria-modal="true" className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{t('groups.createModal.title', { defaultValue: 'Create Group' })}</h2>
               <button className="btn-icon" onClick={() => setShowCreateModal(false)}>
@@ -746,8 +746,8 @@ export function Groups() {
 
       {/* Join Group Modal */}
       {showJoinModal && (
-        <div className="modal-overlay" onClick={() => setShowJoinModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay" aria-hidden="true" onClick={() => setShowJoinModal(false)}>
+          <div role="dialog" aria-modal="true" className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{t('groups.joinModal.title', { defaultValue: 'Join Group' })}</h2>
               <button className="btn-icon" onClick={() => setShowJoinModal(false)}>
@@ -791,7 +791,7 @@ export function Groups() {
 
       {/* Leave Confirm Modal */}
       {leaveTarget && (
-        <div className="modal-overlay" onClick={() => setLeaveTarget(null)}>
+        <div className="modal-overlay" aria-hidden="true" onClick={() => setLeaveTarget(null)}>
           <div className="modal modal-sm" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{t('groups.leaveModal.title', { defaultValue: 'Leave Group' })}</h2>

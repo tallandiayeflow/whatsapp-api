@@ -11,6 +11,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 import { AuthService } from '../auth/auth.service';
+import { UserService } from '../auth/user.service';
 import type {
   WSClientMessage,
   WSSubscribeRequest,
@@ -35,35 +36,47 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   private logger = new Logger('EventsGateway');
 
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly userService: UserService,
+  ) {}
 
   afterInit() {
     this.logger.log('WebSocket Gateway initialized');
   }
 
   async handleConnection(client: Socket) {
-    // Extract API key from header or query param
-    const apiKey = (client.handshake.headers['x-api-key'] as string) || (client.handshake.query.apiKey as string);
-
-    if (!apiKey) {
-      this.logger.warn(`Client ${client.id} rejected: No API key provided`);
-      client.emit('message', this.createError('UNAUTHORIZED', 'API key required'));
-      client.disconnect();
-      return;
-    }
+    const apiKey =
+      (client.handshake.headers['x-api-key'] as string) ||
+      (client.handshake.query.apiKey as string);
+    const authHeader = client.handshake.headers['authorization'] as string | undefined;
+    const jwtToken =
+      (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined) ||
+      (client.handshake.query.jwt as string | undefined);
 
     try {
-      const validKey = await this.authService.validateApiKey(apiKey);
-      if (!validKey) {
-        this.logger.warn(`Client ${client.id} rejected: Invalid API key`);
-        client.emit('message', this.createError('UNAUTHORIZED', 'Invalid API key'));
+      if (apiKey) {
+        const validKey = await this.authService.validateApiKey(apiKey);
+        if (!validKey) {
+          client.emit('message', this.createError('UNAUTHORIZED', 'Invalid API key'));
+          client.disconnect();
+          return;
+        }
+        (client.data as { principal: unknown }).principal = validKey;
+        this.logger.log(`Client connected: ${client.id} (key: ${validKey.name})`);
+      } else if (jwtToken) {
+        const user = await this.userService.validateJwt(jwtToken);
+        if (!user) {
+          client.emit('message', this.createError('UNAUTHORIZED', 'Invalid JWT token'));
+          client.disconnect();
+          return;
+        }
+        (client.data as { principal: unknown }).principal = user;
+        this.logger.log(`Client connected: ${client.id} (jwt user: ${user.role})`);
+      } else {
+        client.emit('message', this.createError('UNAUTHORIZED', 'Authentication required'));
         client.disconnect();
-        return;
       }
-
-      // Store API key info on socket for later use
-      (client.data as { apiKey: unknown }).apiKey = validKey;
-      this.logger.log(`Client connected: ${client.id} (key: ${validKey.name})`);
     } catch (error) {
       this.logger.warn(`Client ${client.id} rejected: Auth error`, {
         error: error instanceof Error ? error.message : String(error),

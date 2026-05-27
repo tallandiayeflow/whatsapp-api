@@ -909,8 +909,8 @@ export function Infrastructure() {
       </div>
 
       {showRestartModal && (
-        <div className="modal-overlay">
-          <div className="modal" style={{ maxWidth: '500px', textAlign: 'center' }}>
+        <div className="modal-overlay" aria-hidden="true">
+          <div role="dialog" aria-modal="true" className="modal" style={{ maxWidth: '500px', textAlign: 'center' }}>
             <div className="modal-header" style={{ justifyContent: 'center', borderBottom: 'none' }}>
               <h2>
                 {restartStatus === 'idle' && t('infrastructure.restart.idleTitle')}

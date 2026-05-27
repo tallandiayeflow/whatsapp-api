@@ -311,6 +311,63 @@
   background: #b91c1c;
 }
 
+/* Expiry badges */
+.expiry-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+.expiry-none {
+  color: var(--text-muted);
+  background: transparent;
+}
+.expiry-ok {
+  background: rgba(37, 211, 102, 0.1);
+  color: var(--primary);
+}
+.expiry-warning {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+}
+.expiry-expired {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+}
+
+/* Expiry preset buttons in create modal */
+.expiry-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+.expiry-preset-btn {
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: none;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all var(--transition-fast);
+}
+.expiry-preset-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.expiry-preset-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
 /* Mobile Responsive */
 @media (max-width: 768px) {
   .api-keys-page {

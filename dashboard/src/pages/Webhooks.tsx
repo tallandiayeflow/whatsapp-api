@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 import { useTranslation } from 'react-i18next';
 import {
   Plus,
@@ -54,6 +55,13 @@ export function Webhooks() {
   const [editErrors, setEditErrors] = useState<{ url?: string }>({});
   const [testingId, setTestingId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const closeAllModals = useCallback(() => {
+    setShowCreateModal(false);
+    setShowEditModal(false);
+    setShowDeleteModal(false);
+  }, []);
+  useEscapeKey(closeAllModals, showCreateModal || showEditModal || showDeleteModal);
 
   const validateUrl = (url: string): string | undefined => {
     if (!url.trim()) return 'URL is required';
@@ -234,8 +242,8 @@ export function Webhooks() {
       />
 
       {showCreateModal && (
-        <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay" aria-hidden="true" onClick={() => setShowCreateModal(false)}>
+          <div role="dialog" aria-modal="true" className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{t('webhooks.createTitle')}</h2>
               <button className="btn-icon" onClick={() => setShowCreateModal(false)}>
@@ -293,8 +301,8 @@ export function Webhooks() {
       )}
 
       {showEditModal && editWebhook && (
-        <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay" aria-hidden="true" onClick={() => setShowEditModal(false)}>
+          <div role="dialog" aria-modal="true" className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{t('webhooks.editTitle')}</h2>
               <button className="btn-icon" onClick={() => setShowEditModal(false)}>
@@ -351,7 +359,7 @@ export function Webhooks() {
       )}
 
       {showDeleteModal && deleteTarget && (
-        <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
+        <div className="modal-overlay" aria-hidden="true" onClick={() => setShowDeleteModal(false)}>
           <div className="modal modal-sm" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{t('webhooks.deleteTitle')}</h2>

@@ -17,7 +17,7 @@ export const queryKeys = {
   sessionGroups: (sessionId: string) => ['sessions', sessionId, 'groups'] as const,
   webhooks: ['webhooks'] as const,
   apiKeys: ['apiKeys'] as const,
-  logs: (params: { severity?: string; page: number; limit: number }) =>
+  logs: (params: { severity?: string; action?: string; page: number; limit: number }) =>
     ['logs', params] as const,
   infraStatus: ['infra', 'status'] as const,
   plugins: ['plugins'] as const,
@@ -180,16 +180,18 @@ export function useRevokeApiKeyMutation() {
 
 // ── Logs Queries ──────────────────────────────────────────────────────
 
-export function useLogsQuery(params: { severity?: string; page: number; limit: number }) {
+export function useLogsQuery(params: { severity?: string; action?: string; page: number; limit: number; refetchInterval?: number }) {
   return useQuery({
     queryKey: queryKeys.logs(params),
     queryFn: () =>
       auditApi.list({
         severity: params.severity,
+        action: params.action,
         limit: params.limit,
         offset: (params.page - 1) * params.limit,
       }),
     staleTime: 15_000,
+    refetchInterval: params.refetchInterval,
   });
 }
 

@@ -164,6 +164,15 @@ export class UserService implements OnModuleInit {
     await this.userRepository.save(user);
   }
 
+  async validateJwt(token: string): Promise<{ role: string } | null> {
+    try {
+      const payload = await this.jwtService.verifyAsync<{ sub: string; role: string }>(token);
+      return { role: payload.role };
+    } catch {
+      return null;
+    }
+  }
+
   toResponseDto(user: User): UserResponseDto {
     return {
       id: user.id,
