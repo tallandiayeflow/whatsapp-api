@@ -51,7 +51,7 @@ export class StorageService {
           region,
           credentials: { accessKeyId, secretAccessKey },
           forcePathStyle: true,
-        } as any);
+        });
         this.s3Bucket = process.env.S3_BUCKET || s3Config.bucket || 'openwa';
         void this.initializeS3Bucket();
       }

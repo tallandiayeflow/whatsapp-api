@@ -21,7 +21,9 @@ export function useRealtimeEvents() {
   const socketRef = useRef<Socket | null>(null);
   // Keep toast stable across renders
   const toastRef = useRef(toast);
-  toastRef.current = toast;
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
 
   useEffect(() => {
     const apiKey = sessionStorage.getItem('openwa_api_key');

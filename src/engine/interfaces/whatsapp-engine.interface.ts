@@ -298,7 +298,12 @@ export interface IWhatsAppEngine {
   sendCatalog(chatId: string, body?: string): Promise<MessageResult>;
 
   // Polls
-  sendPollMessage(chatId: string, question: string, options: string[], allowMultipleAnswers?: boolean): Promise<{ messageId: string; timestamp: number }>;
+  sendPollMessage(
+    chatId: string,
+    question: string,
+    options: string[],
+    allowMultipleAnswers?: boolean,
+  ): Promise<{ messageId: string; timestamp: number }>;
 
   // Edit
   editTextMessage(messageId: string, newText: string): Promise<void>;
@@ -310,7 +315,11 @@ export interface IWhatsAppEngine {
   setPresence(chatId: string, presence: 'typing' | 'recording' | 'paused'): Promise<void>;
 
   // View once
-  sendViewOnceMedia(chatId: string, mediaUrl: string, mediaType: 'image' | 'video'): Promise<{ messageId: string; timestamp: number }>;
+  sendViewOnceMedia(
+    chatId: string,
+    mediaUrl: string,
+    mediaType: 'image' | 'video',
+  ): Promise<{ messageId: string; timestamp: number }>;
 
   // Groups
   joinGroupByInviteCode(inviteCode: string): Promise<{ id: string; name: string }>;
@@ -319,8 +328,14 @@ export interface IWhatsAppEngine {
   setGroupPicture(groupId: string, imageUrl: string): Promise<void>;
 
   // Mentions
-  sendTextWithMentions(chatId: string, text: string, mentionedIds: string[]): Promise<{ messageId: string; timestamp: number }>;
+  sendTextWithMentions(
+    chatId: string,
+    text: string,
+    mentionedIds: string[],
+  ): Promise<{ messageId: string; timestamp: number }>;
 
   // Contacts
-  resolveNumber(phoneNumber: string): Promise<{ id: string; user: string; server: string; isRegistered: boolean } | null>;
+  resolveNumber(
+    phoneNumber: string,
+  ): Promise<{ id: string; user: string; server: string; isRegistered: boolean } | null>;
 }

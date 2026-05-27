@@ -5,6 +5,7 @@ import { NotFoundException, ConflictException, BadRequestException } from '@nest
 import { SessionService } from './session.service';
 import { Session, SessionStatus } from './entities/session.entity';
 import { EngineFactory } from '../../engine/engine.factory';
+import { EngineStatus } from '../../engine/interfaces/whatsapp-engine.interface';
 import { EventsGateway } from '../events/events.gateway';
 import { WebhookService } from '../webhook/webhook.service';
 import { HookManager } from '../../core/hooks';
@@ -67,6 +68,7 @@ describe('SessionService', () => {
       disconnect: jest.fn().mockResolvedValue(undefined),
       getQRCode: jest.fn().mockReturnValue(null),
       getGroups: jest.fn().mockResolvedValue([]),
+      getStatus: jest.fn().mockReturnValue(EngineStatus.INITIALIZING),
     };
 
     engineFactory = {

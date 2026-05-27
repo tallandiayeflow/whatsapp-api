@@ -114,10 +114,7 @@ export class WhatsAppWebJsAdapter extends EventEmitter implements IWhatsAppEngin
     // LocalAuth stores profile at {dataPath}/session-{clientId}/
     // SingletonLock is a SYMLINK (not a regular file) — must use lstatSync, not existsSync,
     // because existsSync follows the symlink and returns false for broken symlinks.
-    const profileDir = path.join(
-      path.resolve(this.config.sessionDataPath),
-      `session-${this.config.sessionId}`,
-    );
+    const profileDir = path.join(path.resolve(this.config.sessionDataPath), `session-${this.config.sessionId}`);
     for (const dir of [profileDir, path.join(profileDir, 'Default')]) {
       for (const lockFile of ['SingletonLock', 'SingletonCookie', 'SingletonSocket']) {
         const lockPath = path.join(dir, lockFile);
@@ -219,14 +216,10 @@ export class WhatsAppWebJsAdapter extends EventEmitter implements IWhatsAppEngin
       this.callbacks.onMessageAck?.(msg.id._serialized, ack);
     });
 
-    this.client.on('message_revoke_everyone', (after, _before) => {
+    this.client.on('message_revoke_everyone', after => {
       if (this.callbacks.onMessageDeleted) {
         const afterMsg = after as { id: { _serialized: string }; from?: string; to?: string };
-        this.callbacks.onMessageDeleted(
-          afterMsg.id._serialized,
-          afterMsg.from || afterMsg.to || '',
-          true,
-        );
+        this.callbacks.onMessageDeleted(afterMsg.id._serialized, afterMsg.from || afterMsg.to || '', true);
       }
     });
 
@@ -901,11 +894,14 @@ export class WhatsAppWebJsAdapter extends EventEmitter implements IWhatsAppEngin
   }
 
   private async patchStatusGating(): Promise<void> {
-    await (this.client as any).pupPage.evaluate(() => {
+    // Access Puppeteer page from whatsapp-web.js client to inject polyfill
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const pupPage = (this.client as any).pupPage as { evaluate: (fn: () => void) => Promise<void> };
+    await pupPage.evaluate(() => {
       try {
-        const utils = (window as any).require('WAWebStatusGatingUtils');
-        if (utils && typeof utils.canCheckStatusRankingPosterGating !== 'function') {
-          utils.canCheckStatusRankingPosterGating = () => false;
+        const utils = (window as any).require('WAWebStatusGatingUtils') as Record<string, unknown> | null;
+        if (utils && typeof utils['canCheckStatusRankingPosterGating'] !== 'function') {
+          utils['canCheckStatusRankingPosterGating'] = () => false;
         }
       } catch {
         // module not found — nothing to patch
@@ -941,7 +937,7 @@ export class WhatsAppWebJsAdapter extends EventEmitter implements IWhatsAppEngin
     } else {
       messageMedia = new MessageMedia(media.mimetype, media.data.toString('base64'), media.filename);
     }
-    const msg = await this.client!.sendMessage('status@broadcast', messageMedia, { caption } as any);
+    const msg = await this.client!.sendMessage('status@broadcast', messageMedia, { caption });
     const now = new Date();
     return {
       statusId: msg.id._serialized,
@@ -1007,7 +1003,10 @@ export class WhatsAppWebJsAdapter extends EventEmitter implements IWhatsAppEngin
     allowMultipleAnswers?: boolean,
   ): Promise<{ messageId: string; timestamp: number }> {
     this.ensureReady();
-    const poll = new Poll(question, options, { allowMultipleAnswers: allowMultipleAnswers ?? false, messageSecret: undefined });
+    const poll = new Poll(question, options, {
+      allowMultipleAnswers: allowMultipleAnswers ?? false,
+      messageSecret: undefined,
+    });
     const msg = await this.client!.sendMessage(chatId, poll);
     return { messageId: msg.id._serialized, timestamp: msg.timestamp };
   }
@@ -1039,6 +1038,7 @@ export class WhatsAppWebJsAdapter extends EventEmitter implements IWhatsAppEngin
   async sendViewOnceMedia(
     chatId: string,
     mediaUrl: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _mediaType: 'image' | 'video',
   ): Promise<{ messageId: string; timestamp: number }> {
     this.ensureReady();

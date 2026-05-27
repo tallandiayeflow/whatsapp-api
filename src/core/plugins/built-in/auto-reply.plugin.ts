@@ -46,22 +46,25 @@ export class AutoReplyPlugin implements OnModuleInit, IPlugin {
     this.pluginLoader.registerBuiltInPlugin(AUTO_REPLY_MANIFEST, this);
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   async onEnable(ctx: PluginContext): Promise<void> {
     this.currentCtx = ctx;
     ctx.registerHook('message:received', this.handleMessage.bind(this));
     ctx.logger.log('Auto Reply plugin enabled');
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   async onDisable(_ctx: PluginContext): Promise<void> {
     this.currentCtx = null;
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   async onConfigChange(ctx: PluginContext, newConfig: Record<string, unknown>): Promise<void> {
     this.currentCtx = { ...ctx, config: newConfig };
   }
 
   async handleMessage(hookCtx: HookContext<unknown>): Promise<HookResult<unknown>> {
-    const data = hookCtx.data as unknown as { from: string; body: string; sessionId: string };
+    const data = hookCtx.data as { from: string; body: string; sessionId: string };
 
     if (!this.currentCtx) {
       return { continue: true, data: hookCtx.data };
@@ -107,11 +110,10 @@ export class AutoReplyPlugin implements OnModuleInit, IPlugin {
             }
           }
         } catch (error) {
-          this.currentCtx.logger.error(
-            `Failed to send auto-reply to ${from}`,
-            error,
-            { keyword: rule.keyword, sessionId: sessionId ?? '' },
-          );
+          this.currentCtx.logger.error(`Failed to send auto-reply to ${from}`, error, {
+            keyword: rule.keyword,
+            sessionId: sessionId ?? '',
+          });
         }
         break; // Only first matching rule
       }

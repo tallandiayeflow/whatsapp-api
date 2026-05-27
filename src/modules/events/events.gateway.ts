@@ -46,10 +46,8 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   async handleConnection(client: Socket) {
-    const apiKey =
-      (client.handshake.headers['x-api-key'] as string) ||
-      (client.handshake.query.apiKey as string);
-    const authHeader = client.handshake.headers['authorization'] as string | undefined;
+    const apiKey = (client.handshake.headers['x-api-key'] as string) || (client.handshake.query.apiKey as string);
+    const authHeader = client.handshake.headers['authorization'];
     const jwtToken =
       (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined) ||
       (client.handshake.query.jwt as string | undefined);

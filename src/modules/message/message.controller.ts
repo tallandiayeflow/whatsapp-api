@@ -297,10 +297,7 @@ export class MessageController {
   @ApiParam({ name: 'sessionId', description: 'Session ID' })
   @ApiResponse({ status: 201, description: 'Poll sent', type: MessageResponseDto })
   @ApiResponse({ status: 400, description: 'Session not active or invalid request' })
-  async sendPoll(
-    @Param('sessionId') sessionId: string,
-    @Body() dto: SendPollMessageDto,
-  ): Promise<MessageResponseDto> {
+  async sendPoll(@Param('sessionId') sessionId: string, @Body() dto: SendPollMessageDto): Promise<MessageResponseDto> {
     return this.messageService.sendPoll(sessionId, dto);
   }
 
@@ -311,10 +308,7 @@ export class MessageController {
   @ApiParam({ name: 'sessionId', description: 'Session ID' })
   @ApiResponse({ status: 204, description: 'Message edited' })
   @ApiResponse({ status: 400, description: 'Session not active or message not found' })
-  async editMessage(
-    @Param('sessionId') sessionId: string,
-    @Body() dto: EditTextMessageDto,
-  ): Promise<void> {
+  async editMessage(@Param('sessionId') sessionId: string, @Body() dto: EditTextMessageDto): Promise<void> {
     return this.messageService.editMessage(sessionId, dto);
   }
 
@@ -325,10 +319,7 @@ export class MessageController {
   @ApiParam({ name: 'sessionId', description: 'Session ID' })
   @ApiResponse({ status: 204, description: 'Chat marked as read' })
   @ApiResponse({ status: 400, description: 'Session not active or chat not found' })
-  async markRead(
-    @Param('sessionId') sessionId: string,
-    @Body() dto: MarkChatReadDto,
-  ): Promise<void> {
+  async markRead(@Param('sessionId') sessionId: string, @Body() dto: MarkChatReadDto): Promise<void> {
     return this.messageService.markChatRead(sessionId, dto);
   }
 
@@ -339,10 +330,7 @@ export class MessageController {
   @ApiParam({ name: 'sessionId', description: 'Session ID' })
   @ApiResponse({ status: 204, description: 'Presence set' })
   @ApiResponse({ status: 400, description: 'Session not active or invalid request' })
-  async setPresence(
-    @Param('sessionId') sessionId: string,
-    @Body() dto: SetPresenceDto,
-  ): Promise<void> {
+  async setPresence(@Param('sessionId') sessionId: string, @Body() dto: SetPresenceDto): Promise<void> {
     return this.messageService.setPresence(sessionId, dto);
   }
 

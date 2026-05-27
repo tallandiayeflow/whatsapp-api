@@ -300,155 +300,155 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
     this.engines.set(id, engine);
 
     try {
-    await engine.initialize({
-      onQRCode: (): void => {
-        this.logger.log('QR code generated', {
-          sessionId: id,
-          action: 'qr_generated',
-        });
-
-        // Execute hook for QR event
-        void this.hookManager.execute(
-          'session:qr',
-          { sessionId: id },
-          {
+      await engine.initialize({
+        onQRCode: (): void => {
+          this.logger.log('QR code generated', {
             sessionId: id,
-            source: 'Engine',
-          },
-        );
-
-        void this.updateStatus(id, SessionStatus.QR_READY);
-      },
-      onReady: (phone: string, pushName: string): void => {
-        this.logger.log(`Session ready: ${phone}`, {
-          sessionId: id,
-          phone,
-          pushName,
-          action: 'ready',
-        });
-
-        // Execute hook for ready event
-        void this.hookManager.execute(
-          'session:ready',
-          { phone, pushName },
-          {
-            sessionId: id,
-            source: 'Engine',
-          },
-        );
-
-        // Reset reconnect attempts on successful connection
-        const reconnectState = this.reconnectStates.get(id);
-        if (reconnectState) {
-          reconnectState.attempts = 0;
-        }
-
-        void this.sessionRepository.update(id, {
-          status: SessionStatus.READY,
-          phone,
-          pushName,
-          connectedAt: new Date(),
-          lastActiveAt: new Date(),
-        });
-      },
-      onMessage: (message): void => {
-        this.logger.debug(`Message received from ${message.from}`, {
-          sessionId: id,
-          messageId: message.id,
-          from: message.from,
-          action: 'message_received',
-        });
-        // Update last active timestamp
-        void this.sessionRepository.update(id, { lastActiveAt: new Date() });
-        // Convert IncomingMessage to plain object for dispatch
-        const messageData = { ...message };
-
-        // Execute hook for message received - plugins can modify or stop processing
-        void this.hookManager
-          .execute('message:received', messageData, {
-            sessionId: id,
-            source: 'Engine',
-          })
-          .then(({ continue: shouldContinue, data: finalMessage }) => {
-            if (!shouldContinue) {
-              // Plugin stopped processing (e.g., auto-reply handled it)
-              return;
-            }
-
-            // Dispatch to webhooks with potentially modified message
-            void this.webhookService.dispatch(id, 'message.received', finalMessage);
-            // Emit real-time event to WebSocket clients
-            this.eventsGateway.emitMessage(id, finalMessage);
+            action: 'qr_generated',
           });
-      },
-      onDisconnected: (reason: string): void => {
-        this.logger.warn(`Session disconnected: ${reason}`, {
-          sessionId: id,
-          reason,
-          action: 'disconnected',
-        });
 
-        // Execute hook for disconnected event
-        void this.hookManager.execute(
-          'session:disconnected',
-          { reason },
-          {
+          // Execute hook for QR event
+          void this.hookManager.execute(
+            'session:qr',
+            { sessionId: id },
+            {
+              sessionId: id,
+              source: 'Engine',
+            },
+          );
+
+          void this.updateStatus(id, SessionStatus.QR_READY);
+        },
+        onReady: (phone: string, pushName: string): void => {
+          this.logger.log(`Session ready: ${phone}`, {
             sessionId: id,
-            source: 'Engine',
-          },
-        );
+            phone,
+            pushName,
+            action: 'ready',
+          });
 
-        void this.updateStatus(id, SessionStatus.DISCONNECTED);
+          // Execute hook for ready event
+          void this.hookManager.execute(
+            'session:ready',
+            { phone, pushName },
+            {
+              sessionId: id,
+              source: 'Engine',
+            },
+          );
 
-        // Attempt to reconnect
-        this.scheduleReconnect(id, session);
-      },
-      onStateChanged: (engineState: EngineStatus): void => {
-        const statusMap: Record<EngineStatus, SessionStatus> = {
-          [EngineStatus.DISCONNECTED]: SessionStatus.DISCONNECTED,
-          [EngineStatus.INITIALIZING]: SessionStatus.INITIALIZING,
-          [EngineStatus.QR_READY]: SessionStatus.QR_READY,
-          [EngineStatus.AUTHENTICATING]: SessionStatus.AUTHENTICATING,
-          [EngineStatus.READY]: SessionStatus.READY,
-          [EngineStatus.FAILED]: SessionStatus.FAILED,
-        };
-        const newStatus = statusMap[engineState];
-        if (newStatus) {
-          void this.updateStatus(id, newStatus);
-        }
-      },
-      onMessageAck: (messageId: string, ack: number): void => {
-        void this.webhookService.dispatch(id, 'message.ack', {
-          messageId,
-          ack,
-          // ack values: 0=pending, 1=sent, 2=delivered, 3=read, 4=played
-        });
-      },
-      onMessageDeleted: (messageId: string, chatId: string, deletedForEveryone: boolean): void => {
-        void this.webhookService.dispatch(id, 'message.deleted', {
-          messageId,
-          chatId,
-          deletedForEveryone,
-        });
-      },
-      onPresenceUpdate: (chatId: string, userId: string, presence: string): void => {
-        void this.webhookService.dispatch(id, 'presence.updated', {
-          chatId,
-          userId,
-          presence,
-        });
-      },
-      onCallReceived: (callId: string, from: string, isVideo: boolean, isGroup: boolean): void => {
-        void this.webhookService.dispatch(id, 'call.received', {
-          callId,
-          from,
-          isVideo,
-          isGroup,
-        });
-      },
-    });
+          // Reset reconnect attempts on successful connection
+          const reconnectState = this.reconnectStates.get(id);
+          if (reconnectState) {
+            reconnectState.attempts = 0;
+          }
 
-    await this.updateStatus(id, SessionStatus.INITIALIZING);
+          void this.sessionRepository.update(id, {
+            status: SessionStatus.READY,
+            phone,
+            pushName,
+            connectedAt: new Date(),
+            lastActiveAt: new Date(),
+          });
+        },
+        onMessage: (message): void => {
+          this.logger.debug(`Message received from ${message.from}`, {
+            sessionId: id,
+            messageId: message.id,
+            from: message.from,
+            action: 'message_received',
+          });
+          // Update last active timestamp
+          void this.sessionRepository.update(id, { lastActiveAt: new Date() });
+          // Convert IncomingMessage to plain object for dispatch
+          const messageData = { ...message };
+
+          // Execute hook for message received - plugins can modify or stop processing
+          void this.hookManager
+            .execute('message:received', messageData, {
+              sessionId: id,
+              source: 'Engine',
+            })
+            .then(({ continue: shouldContinue, data: finalMessage }) => {
+              if (!shouldContinue) {
+                // Plugin stopped processing (e.g., auto-reply handled it)
+                return;
+              }
+
+              // Dispatch to webhooks with potentially modified message
+              void this.webhookService.dispatch(id, 'message.received', finalMessage);
+              // Emit real-time event to WebSocket clients
+              this.eventsGateway.emitMessage(id, finalMessage);
+            });
+        },
+        onDisconnected: (reason: string): void => {
+          this.logger.warn(`Session disconnected: ${reason}`, {
+            sessionId: id,
+            reason,
+            action: 'disconnected',
+          });
+
+          // Execute hook for disconnected event
+          void this.hookManager.execute(
+            'session:disconnected',
+            { reason },
+            {
+              sessionId: id,
+              source: 'Engine',
+            },
+          );
+
+          void this.updateStatus(id, SessionStatus.DISCONNECTED);
+
+          // Attempt to reconnect
+          this.scheduleReconnect(id, session);
+        },
+        onStateChanged: (engineState: EngineStatus): void => {
+          const statusMap: Record<EngineStatus, SessionStatus> = {
+            [EngineStatus.DISCONNECTED]: SessionStatus.DISCONNECTED,
+            [EngineStatus.INITIALIZING]: SessionStatus.INITIALIZING,
+            [EngineStatus.QR_READY]: SessionStatus.QR_READY,
+            [EngineStatus.AUTHENTICATING]: SessionStatus.AUTHENTICATING,
+            [EngineStatus.READY]: SessionStatus.READY,
+            [EngineStatus.FAILED]: SessionStatus.FAILED,
+          };
+          const newStatus = statusMap[engineState];
+          if (newStatus) {
+            void this.updateStatus(id, newStatus);
+          }
+        },
+        onMessageAck: (messageId: string, ack: number): void => {
+          void this.webhookService.dispatch(id, 'message.ack', {
+            messageId,
+            ack,
+            // ack values: 0=pending, 1=sent, 2=delivered, 3=read, 4=played
+          });
+        },
+        onMessageDeleted: (messageId: string, chatId: string, deletedForEveryone: boolean): void => {
+          void this.webhookService.dispatch(id, 'message.deleted', {
+            messageId,
+            chatId,
+            deletedForEveryone,
+          });
+        },
+        onPresenceUpdate: (chatId: string, userId: string, presence: string): void => {
+          void this.webhookService.dispatch(id, 'presence.updated', {
+            chatId,
+            userId,
+            presence,
+          });
+        },
+        onCallReceived: (callId: string, from: string, isVideo: boolean, isGroup: boolean): void => {
+          void this.webhookService.dispatch(id, 'call.received', {
+            callId,
+            from,
+            isVideo,
+            isGroup,
+          });
+        },
+      });
+
+      await this.updateStatus(id, SessionStatus.INITIALIZING);
     } catch (error: unknown) {
       // Engine failed to start — remove from map so start() can be retried
       await this.cleanupEngine(id);

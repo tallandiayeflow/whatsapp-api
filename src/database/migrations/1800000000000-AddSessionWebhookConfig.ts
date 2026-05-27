@@ -25,9 +25,7 @@ export class AddSessionWebhookConfig1800000000000 implements MigrationInterface 
 
     const hasWebhookSecret = await queryRunner.hasColumn('sessions', 'webhookSecret');
     if (!hasWebhookSecret) {
-      await queryRunner.query(
-        `ALTER TABLE "sessions" ADD COLUMN "webhookSecret" varchar(255) NULL`,
-      );
+      await queryRunner.query(`ALTER TABLE "sessions" ADD COLUMN "webhookSecret" varchar(255) NULL`);
     }
   }
 
