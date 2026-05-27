@@ -23,6 +23,7 @@ export default defineConfig([
       'react-hooks/purity': 'off',
       'react-hooks/incompatible-library': 'off',
       'react-hooks/set-state-in-effect': 'off',
+      'react-hooks/preserve-manual-memoization': 'off',
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
     },
   },

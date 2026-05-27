@@ -53,7 +53,7 @@ export class AutoReplyPlugin implements OnModuleInit, IPlugin {
     ctx.logger.log('Auto Reply plugin enabled');
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await
+  // eslint-disable-next-line @typescript-eslint/require-await, @typescript-eslint/no-unused-vars
   async onDisable(_ctx: PluginContext): Promise<void> {
     this.currentCtx = null;
   }

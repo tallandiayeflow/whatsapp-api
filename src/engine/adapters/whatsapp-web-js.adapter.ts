@@ -899,6 +899,7 @@ export class WhatsAppWebJsAdapter extends EventEmitter implements IWhatsAppEngin
     const pupPage = (this.client as any).pupPage as { evaluate: (fn: () => void) => Promise<void> };
     await pupPage.evaluate(() => {
       try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         const utils = (window as any).require('WAWebStatusGatingUtils') as Record<string, unknown> | null;
         if (utils && typeof utils['canCheckStatusRankingPosterGating'] !== 'function') {
           utils['canCheckStatusRankingPosterGating'] = () => false;
